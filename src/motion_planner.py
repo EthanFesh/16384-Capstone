@@ -3,12 +3,15 @@ sys.path.append("../config")
 
 import numpy as np
 from robot_config import RobotConfig
+from task_config import TaskConfig
 from frankapy import FrankaArm
 from frankapy import FrankaArm, SensorDataMessageType
 from frankapy import FrankaConstants as FC
 from franka_interface_msgs.msg import SensorDataGroup
 from frankapy.proto_utils import sensor_proto2ros_msg, make_sensor_group_msg
 from frankapy.proto import JointPositionSensorMessage, ShouldTerminateSensorMessage
+from utils import _slerp, _rotation_to_quaternion, _quaternion_to_rotation
+from robot import Robot
 import rospy
 
 class TrajectoryGenerator:
@@ -17,10 +20,9 @@ class TrajectoryGenerator:
         self.max_vel = RobotConfig.MAX_VELOCITY
         self.max_acc = RobotConfig.MAX_ACCELERATION
     
-    def generate_straight_line(self):
+    def generate_straight_line(self, start_pose, end_pose):
         """
-        This function creates a smooth straight-line trajectory in Cartesian space.
-
+        This function creates a smooth straight-line trajectory in Cartesian space
          Parameters
         ----------
         You can define any parameters you need for this function.
@@ -43,7 +45,24 @@ class TrajectoryGenerator:
         - Number of points should give enough resolution for smooth motion
         - Each waypoint should be a 4x4 transformation matrix
         """
-        raise NotImplementedError("Implement generate_straight_line")
+        d_0 = start_pose.translation
+        d_1 = end_pose.translation
+        p_0 = start_pose.rotation
+        p_1 = end_pose.rotation
+        p_0 = _rotation_to_quaternion(p_0)
+        p_1 = _rotation_to_quaternion(p_1)
+        # print(d_0, d_1, start_pose[:3, :3], end_pose[:3, :3])
+        num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.LINE_RESOLUTION)
+        # print(num_points)
+        cartesian_trajectory = []
+        for i in range(num_points):
+            t = i / num_points
+            lerp = d_0+ t * (d_1 - d_0)
+            slerp = _slerp(p_0, p_1, t)
+            R = _quaternion_to_rotation(slerp)
+            cartesian_trajectory.append(np.block([[R, lerp.reshape(3, 1)], [0, 0, 0, 1]]))
+        # print(cartesian_trajectory[-1])
+        return cartesian_trajectory
         
     def generate_curve(self):
         """
@@ -141,7 +160,22 @@ class TrajectoryGenerator:
         - Keep 20ms between waypoints as required by controller
 
         """
-        raise NotImplementedError("Implement interpolate_joint_trajectory")
+        num_points = joint_trajectory.shape[0]
+        ramp_time = self.max_vel / self.max_acc
+        num_accel_points = int(ramp_time / self.dt)
+        num_decel_points = num_accel_points
+        num_cruise_points = num_points - num_accel_points - num_decel_points
+        waypoints = []
+        for i in range(num_accel_points):
+            t = i * self.dt
+            waypoints.append(joint_trajectory[0] + 0.5 * self.max_acc * t ** 2)
+        post_ramp_point = waypoints[-1]
+        for i in range(num_cruise_points):
+            waypoints.append(post_ramp_point + self.max_vel * self.dt * i)
+        for i in range(num_decel_points):
+            t = i * self.dt
+            waypoints.append(joint_trajectory[-1] - 0.5 * self.max_acc * t ** 2)
+        return waypoints
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """
@@ -173,7 +207,14 @@ class TrajectoryGenerator:
         - Check joint limits after IK
         - Use previous joint solution as seed for next IK
         """
-        raise NotImplementedError("Implement convert_cartesian_to_joint")
+        joint_trajectory = []
+        robot = Robot()
+        for pose in cartesian_trajectory:
+            config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else RobotConfig.HOME_JOINTS)
+            if np.any(config < RobotConfig.JOINT_LIMITS_MIN) or np.any(config > RobotConfig.JOINT_LIMITS_MAX):
+                raise ValueError('Joint limits violated')
+            joint_trajectory.append(config)
+        return joint_trajectory
 
 class TrajectoryFollower:
     def __init__(self):
