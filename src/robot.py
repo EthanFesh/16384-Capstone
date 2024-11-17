@@ -92,8 +92,8 @@ class Robot:
         for frame in range(self.dof + 1):
             # Get base pose for this frame
             base_pose = self.forward_kinematics(self.dh_params[:frame], thetas[:frame])[0] if frame > 0 else np.eye(4)
-            base_pos = base_pose[:3,3]
-            base_rot = base_pose[:3,:3]
+            base_pos = base_pose.translation
+            base_rot = base_pose.rotation
             
             # For each joint affecting this frame
             for joint in range(min(frame, self.dof)):
@@ -103,8 +103,8 @@ class Robot:
                 
                 # Get perturbed pose
                 perturbed_pose = self.forward_kinematics(self.dh_params[:frame], thetas_perturbed[:frame])[0] if frame > 0 else np.eye(4)
-                perturbed_pos = perturbed_pose[:3,3]
-                perturbed_rot = perturbed_pose[:3,:3]
+                perturbed_pos = perturbed_pose.translation
+                perturbed_rot = perturbed_pose.rotation
                 
                 # Compute position Jacobian (linear velocity component)
                 jacobians[:3,joint,frame] = (perturbed_pos - base_pos) / epsilon
