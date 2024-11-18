@@ -166,17 +166,16 @@ class Robot:
         - Track pose error magnitude for convergence
         - The iteration parameters are defined in RobotConfig and TaskConfig
         """
+        
         fa = FrankaArm()
         if seed_joints is None:
             seed_joints = fa.get_joints()
-        if seed_joints.shape != (self.dof,):
+        if seed_joints.shape != self.dof:
             raise ValueError(f'Invalid initial_thetas: Expected shape ({self.dof},), got {seed_joints.shape}.')
         if type(target_pose) != RigidTransform:
             raise ValueError('Invalid target_pose: Expected RigidTransform.')
         
-        
-        
-        # Get iteration parameters from RobotConfig
+        # Get iteration parameters
         max_iters = TaskConfig.IK_MAX_ITERATIONS
         convergence_threshold = TaskConfig.IK_TOLERANCE
         step_size = TaskConfig.PATH_RESOLUTION
@@ -184,16 +183,12 @@ class Robot:
         current_joints = seed_joints.copy()
         
         for iteration in range(max_iters):
-            # Get current pose using robot arm
+            # Get current pose
             current_pose = fa.get_pose()
             
-            # Compute position error
+            # Compute errors
             position_error = target_pose.translation - current_pose.translation
-            
-            # Compute orientation error using provided method
             orientation_error = _compute_rotation_error(current_pose, target_pose)
-            
-            # Combine errors
             error = np.concatenate([position_error, orientation_error])
             error_magnitude = np.linalg.norm(error)
             
@@ -204,7 +199,7 @@ class Robot:
                 else:
                     return None
             
-            # Get Jacobian from robot arm
+            # Get Jacobian
             J = fa.get_jacobian(current_joints)
             
             # Check for singularity
@@ -212,22 +207,24 @@ class Robot:
             if np.min(svd_values) < 0.1:
                 return None
                 
-            # Compute joint update using damped pseudo-inverse
-            J_T = J.T
-            damping = 0.01
-            J_pinv = J_T @ np.linalg.inv(J @ J_T + damping * np.eye(6))
+            # Compute right pseudo-inverse, since the franka arm is underconstrained
+            try:
+                J_pinv = J.T @ np.linalg.inv(J @ J.T)
+            except np.linalg.LinAlgError:
+                return None
+            
+            # Compute joint update
             delta_q = J_pinv @ error
             
             # Limit step size
             if np.linalg.norm(delta_q) > step_size:
                 delta_q = step_size * delta_q / np.linalg.norm(delta_q)
-                
+            
             # Update joints
             new_joints = current_joints + delta_q
             
             # Check joint limits
             if not fa.is_joints_reachable(new_joints):
-                # Try to clamp to joint limits
                 new_joints = np.clip(
                     new_joints,
                     RobotConfig.JOINT_LIMITS_LOWER,
@@ -235,9 +232,10 @@ class Robot:
                 )
                 if not fa.is_joints_reachable(new_joints):
                     return None
-                    
+            
             current_joints = new_joints
         
         # Failed to converge within max iterations
         return None
+
 
