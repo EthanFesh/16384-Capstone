@@ -170,7 +170,7 @@ class Robot:
         fa = FrankaArm()
         if seed_joints is None:
             seed_joints = fa.get_joints()
-        if seed_joints.shape != self.dof:
+        if seed_joints.shape != (self.dof,):
             raise ValueError(f'Invalid initial_thetas: Expected shape ({self.dof},), got {seed_joints.shape}.')
         if type(target_pose) != RigidTransform:
             raise ValueError('Invalid target_pose: Expected RigidTransform.')
@@ -195,6 +195,7 @@ class Robot:
             # Check convergence
             if error_magnitude < convergence_threshold:
                 if fa.is_joints_reachable(current_joints):
+                    print(current_joints)
                     return current_joints
                 else:
                     return None

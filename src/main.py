@@ -42,6 +42,7 @@ def go(end_pose):
     # distances = TG.get_distances(cartesian_trajectory)
     # v_cruise = TG.get_v_cruise(distances[-1])
     # times = TG.get_times(v_cruise,distances, cartesian_trajectory)
+    joint_trajectory = np.array(joint_trajectory)
     TF.follow_joint_trajectory(TG.interpolate_joint_trajectory(joint_trajectory))
 
 # read the pen holder pose from pen_holder_pose.npy

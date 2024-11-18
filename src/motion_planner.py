@@ -171,8 +171,7 @@ class TrajectoryGenerator:
         num_waypoints = waypoints.shape[1]
         # Number of segments between waypoints
         num_segments = num_waypoints - 1
-        times = np.linspace(0, num_waypoints * frequency, num_waypoints)
-
+        times = np.linspace(0, num_waypoints * frequency, num_waypoints).reshape(1, -1)
         if times.shape != (1, num_waypoints):
             raise ValueError('Size of times vector is incorrect!')
 
@@ -243,7 +242,7 @@ class TrajectoryGenerator:
             # --------------- END STUDENT SECTION ------------------------------------
 
             segment_start_point += points_in_segment
-
+        print(trajectory)
         return trajectory
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
@@ -268,7 +267,7 @@ class TrajectoryGenerator:
         Hints
         -----
         Key Requirements:
-        - Safety: All solutions must respect joint limits
+        - Safety: All soraiselutions must respect joint limits
         - Smoothness: Solutions should minimize joint motion between waypoints
 
         Implementation:
