@@ -37,7 +37,12 @@ fa.reset_joints()
 
 # Wrapper function that generates and follows trajectories to a desired pose
 def go(end_pose):
-    TF.follow_joint_trajectory(TG.interpolate_joint_trajectory(TG.convert_cartesian_to_joint(TG.generate_straight_line(fa.get_pose(),end_pose))))
+    cartesian_trajectory = TG.generate_straight_line(fa.get_pose(),end_pose)
+    joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
+    distances = TG.get_distances(cartesian_trajectory)
+    v_cruise = TG.get_v_cruise(distances[-1])
+    times = TG.get_times(v_cruise,distances, cartesian_trajectory)
+    TF.follow_joint_trajectory(TG.interpolate_joint_trajectory(joint_trajectory,times,distances,v_cruise))
 
 # read the pen holder pose from pen_holder_pose.npy
 pink_pen = np.load("pen_holder_pose.npy", allow_pickle=True)

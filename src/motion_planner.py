@@ -130,8 +130,46 @@ class TrajectoryGenerator:
         - For rotations: Use SLERP to interpolate between orientations
         """
         raise NotImplementedError("Implement interpolate_cartesian_trajectory")
-        
-    def interpolate_joint_trajectory(self, joint_trajectory):
+    
+    def get_distances(self, waypoints):
+        distances = [0]
+        for i in (len(waypoints)):
+            distance = np.linalg.norm(waypoints[i+1] - waypoints[i]) + distances[-1]
+            distances.append(distance)
+        return distances
+    
+    def get_v_cruise(self, d):
+        accel_d = self.max_vel ** 2 / (2 * self.max_acc)
+        while (accel_d >= d/2):
+            v_max = v_max/2
+            accel_d = v_max ** 2 / (2 * self.max_acc)
+        return v_max
+    
+    def get_times(self, v_cruise, distances, waypoints):
+        total_distance = distances[-1]
+        accel_distance = v_cruise ** 2 / (2 * self.max_acc)
+        cruise_distance = total_distance - accel_distance
+        times = [0]
+        v_i = 0
+        for i in range(1, len(waypoints)):
+            distance = distances[i]
+            if distance <= accel_distance:
+                # accelerating
+                t = (-v_i + np.sqrt(v_i ** 2 + 2 * self.max_acc * distance)) / self.max_acc
+                times.append(t)
+                v_i = self.max_acc * t
+            elif distance <= cruise_distance:
+                # cruising
+                t = (distance - accel_distance) / v_cruise
+                times.append(t + times[-1])
+            else:
+                # decelerating
+                t = (-v_i + np.sqrt(v_i ** 2 - 2 * self.max_acc * (total_distance - distance))) / - self.max_acc
+                times.append(t + times[-1])
+                v_i = v_i - self.max_acc * t
+        return times  
+
+    def interpolate_joint_trajectory(self, joint_trajectory, times, distances, v_cruise):
         """
         Time-parameterize joint trajectory with trapezoidal velocity profile.
 
@@ -164,25 +202,35 @@ class TrajectoryGenerator:
 
         """
         print("interpolate_joint_trajectory")
-        num_points = len(joint_trajectory)
-        ramp_time = self.max_vel / self.max_acc
-        num_accel_points = int(ramp_time / self.dt)
-        num_decel_points = num_accel_points
-        num_cruise_points = num_points - num_accel_points - num_decel_points
+        num_waypoints = len(joint_trajectory)
+        num_segments = num_waypoints - 1
+        num_points_per_segment = []
+        for segment in range(num_segments):
+            delta_t = times[0, segment + 1] - times[0, segment]
+            num_points_per_segment.append(int(delta_t * self.dt))
         waypoints = []
-        for i in range(num_accel_points):
-            t = i * self.dt
-            waypoints.append(joint_trajectory[0] + 0.5 * self.max_acc * t ** 2)
-        print("post accel")
-        post_ramp_point = waypoints[-1]
-        for i in range(num_cruise_points):
-            waypoints.append(post_ramp_point + self.max_vel * self.dt * i)
-        print("post cruise")
-        post_cruise_point = waypoints[-1]
-        for i in range(num_decel_points):
-            t = num_decel_points - 1 - i * self.dt
-            waypoints.append(post_cruise_point + 0.5 * self.max_acc * t ** 2)
-        return waypoints
+        total_distance = distances[-1]
+        accel_distance = v_cruise ** 2 / (2 * self.max_acc)
+        cruise_distance = total_distance - accel_distance
+        for segment in range(num_segments):
+            points_in_segment = num_points_per_segment[segment]
+            distance = distances[segment]
+            status = None
+            if distance <= accel_distance:
+                status = "accel"
+            elif distance <= cruise_distance:
+                status = "cruise"
+            else:
+                status = "decel"
+            for i in range(points_in_segment):
+                t = i * self.dt
+                if status == "accel":
+                    waypoints.append(joint_trajectory[segment] + 0.5 * self.max_acc * t ** 2)
+                elif status == "cruise":
+                    waypoints.append(joint_trajectory[segment] + v_cruise * t)
+                else:
+                    t = points_in_segment - 1 - i * self.dt
+                    waypoints.append(joint_trajectory[segment] + 0.5 * self.max_acc * t ** 2)
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """
