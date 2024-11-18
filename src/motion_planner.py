@@ -130,53 +130,15 @@ class TrajectoryGenerator:
         - For rotations: Use SLERP to interpolate between orientations
         """
         raise NotImplementedError("Implement interpolate_cartesian_trajectory")
-    
-    def get_distances(self, waypoints):
-        distances = [0]
-        for i in (len(waypoints)):
-            distance = np.linalg.norm(waypoints[i+1] - waypoints[i]) + distances[-1]
-            distances.append(distance)
-        return distances
-    
-    def get_v_cruise(self, d):
-        accel_d = self.max_vel ** 2 / (2 * self.max_acc)
-        while (accel_d >= d/2):
-            v_max = v_max/2
-            accel_d = v_max ** 2 / (2 * self.max_acc)
-        return v_max
-    
-    # def get_times(self, v_cruise, distances, waypoints):
-    #     total_distance = distances[-1]
-    #     accel_distance = v_cruise ** 2 / (2 * self.max_acc)
-    #     cruise_distance = total_distance - accel_distance
-    #     times = [0]
-    #     v_i = 0
-    #     for i in range(1, len(waypoints)):
-    #         distance = distances[i]
-    #         if distance <= accel_distance:
-    #             # accelerating
-    #             t = (-v_i + np.sqrt(v_i ** 2 + 2 * self.max_acc * distance)) / self.max_acc
-    #             times.append(t)
-    #             v_i = self.max_acc * t
-    #         elif distance <= cruise_distance:
-    #             # cruising
-    #             t = (distance - accel_distance) / v_cruise
-    #             times.append(t + times[-1])
-    #         else:
-    #             # decelerating
-    #             t = (-v_i + np.sqrt(v_i ** 2 - 2 * self.max_acc * (total_distance - distance))) / - self.max_acc
-    #             times.append(t + times[-1])
-    #             v_i = v_i - self.max_acc * t
-    #     return times  
 
-    def interpolate_joint_trajectory(self, joint_trajectory):
+    def interpolate_joint_trajectory(self, waypoints):
         """
         Time-parameterize joint trajectory with trapezoidal velocity profile.
 
         Parameters
         ----------
-        joint_trajectory : array_like 
-            Array of joint angles
+        waypoints : array_like 
+            Joint space array of configurations
 
         Returns
         -------
@@ -201,22 +163,36 @@ class TrajectoryGenerator:
         - Keep 20ms between waypoints as required by controller
 
         """
-        print("interpolate_joint_trajectory")
-        frequency = self.dt
+        frequency = 1/self.dt
         duty_cycle = 0.25
-        num_waypoints = len(joint_trajectory)
-        print(joint_trajectory)
-        waypoints = np.array(joint_trajectory)
-        num_joints = 7
-        times = np.linspace(0, num_waypoints * frequency, num_waypoints)
-        num_points_per_segment = []
+        # Number of joints
+        num_joints = waypoints.shape[0]
+        # Number of waypoints
+        num_waypoints = waypoints.shape[1]
+        # Number of segments between waypoints
         num_segments = num_waypoints - 1
+        times = np.linspace(0, num_waypoints * frequency, num_waypoints)
+
+        if times.shape != (1, num_waypoints):
+            raise ValueError('Size of times vector is incorrect!')
+
+        if num_waypoints < 2:
+            raise ValueError('Insufficient number of waypoints.')
+
+        if not isinstance(frequency, (int, float)) or frequency < 5:
+            raise ValueError('Invalid control frequency (must be at least 5Hz)')
+
+        if duty_cycle < 0 or duty_cycle > 0.5:
+            raise ValueError('Invalid duty cycle!')
+
+        # Calculate number of points per segment
+        num_points_per_segment = []
         for segment in range(num_segments):
             dt = times[0, segment + 1] - times[0, segment]
             num_points_per_segment.append(int(dt * frequency))
 
         # Pre-allocate trajectory matrix
-        trajectory = np.zeros((7, int(np.sum(num_points_per_segment))))
+        trajectory = np.zeros((num_joints, int(np.sum(num_points_per_segment))))
 
         # Fill in trajectory segment-by-segment
         segment_start_point = 0
@@ -267,36 +243,8 @@ class TrajectoryGenerator:
             # --------------- END STUDENT SECTION ------------------------------------
 
             segment_start_point += points_in_segment
-        print(trajectory)
+
         return trajectory
-        # num_segments = num_waypoints - 1
-        # num_points_per_segment = []
-        # for segment in range(num_segments):
-        #     delta_t = times[segment + 1] - times[segment]
-        #     num_points_per_segment.append(int(delta_t * self.dt))
-        # waypoints = []
-        # total_distance = distances[-1]
-        # accel_distance = v_cruise ** 2 / (2 * self.max_acc)
-        # cruise_distance = total_distance - accel_distance
-        # for segment in range(num_segments):
-        #     points_in_segment = num_points_per_segment[segment]
-        #     distance = distances[segment]
-        #     status = None
-        #     if distance <= accel_distance:
-        #         status = "accel"
-        #     elif distance <= cruise_distance:
-        #         status = "cruise"
-        #     else:
-        #         status = "decel"
-        #     for i in range(points_in_segment):
-        #         t = i * self.dt
-        #         if status == "accel":
-        #             waypoints.append(joint_trajectory[segment] + 0.5 * self.max_acc * t ** 2)
-        #         elif status == "cruise":
-        #             waypoints.append(joint_trajectory[segment] + v_cruise * t)
-        #         else:
-        #             t = points_in_segment - 1 - i * self.dt
-        #             waypoints.append(joint_trajectory[segment] + 0.5 * self.max_acc * t ** 2)
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """
