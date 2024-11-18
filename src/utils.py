@@ -44,16 +44,21 @@ def _rotation_to_quaternion(R):
             qz = 0.25 * S
     return np.array([qw, qx, qy, qz])
 
-def _compute_rotation_error(current_pose, target_pose):
-    current_rot = current_pose.rotation
-    target_rot = target_pose.rotation
-    error = current_rot @ target_rot.T 
-    angle = np.arccos((np.trace(error)-1)/2)
-    if (angle < 1e-6):
+def _compute_rotation_error(self, R_current, R_target):
+    """Compute rotation error in axis-angle form"""
+    R_error = R_target @ R_current.T
+    angle = np.arccos((np.trace(R_error) - 1) / 2)
+   
+    if angle < TaskConfig.IK_TOLERANCE:
         return np.zeros(3)
-    axis = np.array([error[2,1]-error[1,2], error[0,2] - error[2,0], error[1,0] - error[0,1]])
-    axis = axis/(2*np.sin(angle))
-    return angle*axis
+       
+    axis = np.array([
+        R_error[2,1] - R_error[1,2],
+        R_error[0,2] - R_error[2,0],
+        R_error[1,0] - R_error[0,1]
+    ]) / (2 * np.sin(angle))
+   
+    return axis * angle
 
 def _quaternion_to_rotation(q):
     """Convert quaternion to rotation matrix"""
