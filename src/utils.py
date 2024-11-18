@@ -1,6 +1,6 @@
 import numpy as np
 
-def _slerp(self, q0, q1, t):
+def _slerp(q0, q1, t):
     """Spherical Linear Interpolation between quaternions"""
     cos_theta = np.dot(q0, q1)
     if cos_theta < 0:
@@ -14,7 +14,7 @@ def _slerp(self, q0, q1, t):
     s1 = np.sin(t*theta) / sin_theta
     return s0*q0 + s1*q1
         
-def _rotation_to_quaternion(self, R):
+def _rotation_to_quaternion(R):
     """Convert rotation matrix to quaternion"""
     tr = np.trace(R)
     if tr > 0:
@@ -44,7 +44,18 @@ def _rotation_to_quaternion(self, R):
             qz = 0.25 * S
     return np.array([qw, qx, qy, qz])
 
-def _quaternion_to_rotation(self, q):
+def _compute_rotation_error(current_pose, target_pose):
+    current_rot = current_pose.rotation
+    target_rot = target_pose.rotation
+    error = current_rot @ target_rot.T 
+    angle = np.arccos((np.trace(error)-1)/2)
+    if (angle < 1e-6):
+        return np.zeros(3)
+    axis = np.array([error[2,1]-error[1,2], error[0,2] - error[2,0], error[1,0] - error[0,1]])
+    axis = axis/(2*np.sin(angle))
+    return angle*axis
+
+def _quaternion_to_rotation(q):
     """Convert quaternion to rotation matrix"""
     qw, qx, qy, qz = q
     return np.array([

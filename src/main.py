@@ -31,20 +31,21 @@ TG = TrajectoryGenerator()
 TF = TrajectoryFollower()
 print('Starting robot')
 fa = FrankaArm()
-fa.reset_joints()
 fa.open_gripper()
+fa.reset_joints()
+
 
 # Wrapper function that generates and follows trajectories to a desired pose
 def go(end_pose):
     TF.follow_joint_trajectory(TG.interpolate_joint_trajectory(TG.convert_cartesian_to_joint(TG.generate_straight_line(fa.get_pose(),end_pose))))
 
 # read the pen holder pose from pen_holder_pose.npy
-pink_pen = np.load("pen_holder_pose.npy")
+pink_pen = np.load("pen_holder_pose.npy", allow_pickle=True)
 indigo_pen = pink_pen
 green_pen = pink_pen
 
-drop_pose = np.load("drop_bin_pose.npy")
-whiteboard_pose = np.load("whiteboard_pose.npy")
+drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)
+whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
 
 print('Ready')
 while (True):
@@ -52,11 +53,11 @@ while (True):
     if response == 'p':
         response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen: ")
         if (response == 'p'):
-            go(pink_pen)
+            go(pink_pen.item())
         elif (response == 'i'):
-            go(indigo_pen)
+            go(indigo_pen.item())
         elif (response == 'g'):
-            go(green_pen)
+            go(green_pen.item())
         else:
             print('Invalid input')
         response = input("Press 'g' to grab pen: ")

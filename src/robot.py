@@ -5,6 +5,7 @@ from frankapy import FrankaArm
 from autolab_core import RigidTransform
 from robot_config import RobotConfig
 from task_config import TaskConfig
+from utils import _compute_rotation_error
 
 class Robot:
     def __init__(self):
@@ -165,31 +166,32 @@ class Robot:
         - Track pose error magnitude for convergence
         - The iteration parameters are defined in RobotConfig and TaskConfig
         """
-        
-        if seed_joints.shape != (self.dof):
+        fa = FrankaArm()
+        if seed_joints is None:
+            seed_joints = fa.get_joints()
+        if seed_joints.shape != (self.dof,):
             raise ValueError(f'Invalid initial_thetas: Expected shape ({self.dof},), got {seed_joints.shape}.')
         if type(target_pose) != RigidTransform:
             raise ValueError('Invalid target_pose: Expected RigidTransform.')
         
-        if seed_joints is None:
-            seed_joints = self.robot.arm.get_joints()
+        
         
         # Get iteration parameters from RobotConfig
-        max_iters = RobotConfig.MAX_IK_ITERATIONS
-        convergence_threshold = RobotConfig.IK_CONVERGENCE_THRESHOLD
-        step_size = RobotConfig.MAX_IK_STEP_SIZE
+        max_iters = TaskConfig.IK_MAX_ITERATIONS
+        convergence_threshold = TaskConfig.IK_TOLERANCE
+        step_size = TaskConfig.PATH_RESOLUTION
         
         current_joints = seed_joints.copy()
         
         for iteration in range(max_iters):
             # Get current pose using robot arm
-            current_pose = self.robot.arm.get_pose()
+            current_pose = fa.get_pose()
             
             # Compute position error
             position_error = target_pose.translation - current_pose.translation
             
             # Compute orientation error using provided method
-            orientation_error = self._compute_rotation_error(current_pose, target_pose)
+            orientation_error = _compute_rotation_error(current_pose, target_pose)
             
             # Combine errors
             error = np.concatenate([position_error, orientation_error])
@@ -197,22 +199,22 @@ class Robot:
             
             # Check convergence
             if error_magnitude < convergence_threshold:
-                if self.is_joints_reachable(current_joints):
+                if fa.is_joints_reachable(current_joints):
                     return current_joints
                 else:
                     return None
             
             # Get Jacobian from robot arm
-            J = self.robot.arm.get_jacobian(current_joints)
+            J = fa.get_jacobian(current_joints)
             
             # Check for singularity
             svd_values = np.linalg.svd(J, compute_uv=False)
-            if np.min(svd_values) < RobotConfig.SINGULARITY_THRESHOLD:
+            if np.min(svd_values) < 0.1:
                 return None
                 
             # Compute joint update using damped pseudo-inverse
             J_T = J.T
-            damping = RobotConfig.IK_DAMPING_FACTOR
+            damping = 0.01
             J_pinv = J_T @ np.linalg.inv(J @ J_T + damping * np.eye(6))
             delta_q = J_pinv @ error
             
@@ -224,14 +226,14 @@ class Robot:
             new_joints = current_joints + delta_q
             
             # Check joint limits
-            if not self.is_joints_reachable(new_joints):
+            if not fa.is_joints_reachable(new_joints):
                 # Try to clamp to joint limits
                 new_joints = np.clip(
                     new_joints,
                     RobotConfig.JOINT_LIMITS_LOWER,
                     RobotConfig.JOINT_LIMITS_UPPER
                 )
-                if not self.is_joints_reachable(new_joints):
+                if not fa.is_joints_reachable(new_joints):
                     return None
                     
             current_joints = new_joints

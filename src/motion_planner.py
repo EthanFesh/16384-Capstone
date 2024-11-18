@@ -4,6 +4,7 @@ sys.path.append("../config")
 import numpy as np
 from robot_config import RobotConfig
 from task_config import TaskConfig
+from autolab_core import RigidTransform
 from frankapy import FrankaArm
 from frankapy import FrankaArm, SensorDataMessageType
 from frankapy import FrankaConstants as FC
@@ -52,7 +53,7 @@ class TrajectoryGenerator:
         p_0 = _rotation_to_quaternion(p_0)
         p_1 = _rotation_to_quaternion(p_1)
         # print(d_0, d_1, start_pose[:3, :3], end_pose[:3, :3])
-        num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.LINE_RESOLUTION)
+        num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)
         # print(num_points)
         cartesian_trajectory = []
         for i in range(num_points):
@@ -60,7 +61,9 @@ class TrajectoryGenerator:
             lerp = d_0+ t * (d_1 - d_0)
             slerp = _slerp(p_0, p_1, t)
             R = _quaternion_to_rotation(slerp)
-            cartesian_trajectory.append(np.block([[R, lerp.reshape(3, 1)], [0, 0, 0, 1]]))
+            pose = RigidTransform(rotation=R, translation=lerp)
+            cartesian_trajectory.append(pose)
+            # cartesian_trajectory.append(np.block([[R, lerp.reshape(3, 1)], [0, 0, 0, 1]]))
         # print(cartesian_trajectory[-1])
         return cartesian_trajectory
         
@@ -160,7 +163,8 @@ class TrajectoryGenerator:
         - Keep 20ms between waypoints as required by controller
 
         """
-        num_points = joint_trajectory.shape[0]
+        print("interpolate_joint_trajectory")
+        num_points = len(joint_trajectory)
         ramp_time = self.max_vel / self.max_acc
         num_accel_points = int(ramp_time / self.dt)
         num_decel_points = num_accel_points
@@ -169,18 +173,21 @@ class TrajectoryGenerator:
         for i in range(num_accel_points):
             t = i * self.dt
             waypoints.append(joint_trajectory[0] + 0.5 * self.max_acc * t ** 2)
+        print("post accel")
         post_ramp_point = waypoints[-1]
         for i in range(num_cruise_points):
             waypoints.append(post_ramp_point + self.max_vel * self.dt * i)
+        print("post cruise")
+        post_cruise_point = waypoints[-1]
         for i in range(num_decel_points):
-            t = i * self.dt
-            waypoints.append(joint_trajectory[-1] - 0.5 * self.max_acc * t ** 2)
+            t = num_decel_points - 1 - i * self.dt
+            waypoints.append(post_cruise_point + 0.5 * self.max_acc * t ** 2)
         return waypoints
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """
-        Convert Cartesian trajectory to joint trajectory using inverse kinematics.
-
+        Convert Cartesian trajectory to joint             if np.any(config < RobotConfig.JOINT_LIMITS_MIN) or np.any(config > RobotConfig.JOINT_LIMITS_MAX):
+                raise ValueError('Joint limits violated')
         Parameters
         ----------
         cartesian_trajectory : array_like
@@ -207,13 +214,17 @@ class TrajectoryGenerator:
         - Check joint limits after IK
         - Use previous joint solution as seed for next IK
         """
+        print("in cartesian to joint")
         joint_trajectory = []
         robot = Robot()
+        print(len(cartesian_trajectory))
+        i = 0
         for pose in cartesian_trajectory:
-            config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else RobotConfig.HOME_JOINTS)
-            if np.any(config < RobotConfig.JOINT_LIMITS_MIN) or np.any(config > RobotConfig.JOINT_LIMITS_MAX):
-                raise ValueError('Joint limits violated')
+            config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else None)
             joint_trajectory.append(config)
+            i = i + 1
+            if (i % 10 == 0):
+                print(i)
         return joint_trajectory
 
 class TrajectoryFollower:
@@ -240,7 +251,7 @@ class TrajectoryFollower:
         # To ensure skill doesn't end before completing trajectory, make the buffer time much longer than needed
         self.fa.goto_joints(joint_trajectory[0], duration=1000, dynamic=True, buffer_time=10)
         init_time = rospy.Time.now().to_time()
-        for i in range(1, joint_trajectory.shape[0]):
+        for i in range(1, len(joint_trajectory)):
             traj_gen_proto_msg = JointPositionSensorMessage(
                 id=i, timestamp=rospy.Time.now().to_time() - init_time, 
                 joints=joint_trajectory[i]

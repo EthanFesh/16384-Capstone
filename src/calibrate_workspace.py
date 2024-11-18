@@ -12,6 +12,7 @@ class WorkspaceCalibrator:
         print("\nCalibrating pen holder...")
         print("Moving to home position...")
         self.fa.reset_joints()
+        self.fa.close_gripper()
         
 
         input(f"Press Enter to calibrate pen holder")
