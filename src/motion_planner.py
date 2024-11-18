@@ -145,31 +145,31 @@ class TrajectoryGenerator:
             accel_d = v_max ** 2 / (2 * self.max_acc)
         return v_max
     
-    def get_times(self, v_cruise, distances, waypoints):
-        total_distance = distances[-1]
-        accel_distance = v_cruise ** 2 / (2 * self.max_acc)
-        cruise_distance = total_distance - accel_distance
-        times = [0]
-        v_i = 0
-        for i in range(1, len(waypoints)):
-            distance = distances[i]
-            if distance <= accel_distance:
-                # accelerating
-                t = (-v_i + np.sqrt(v_i ** 2 + 2 * self.max_acc * distance)) / self.max_acc
-                times.append(t)
-                v_i = self.max_acc * t
-            elif distance <= cruise_distance:
-                # cruising
-                t = (distance - accel_distance) / v_cruise
-                times.append(t + times[-1])
-            else:
-                # decelerating
-                t = (-v_i + np.sqrt(v_i ** 2 - 2 * self.max_acc * (total_distance - distance))) / - self.max_acc
-                times.append(t + times[-1])
-                v_i = v_i - self.max_acc * t
-        return times  
+    # def get_times(self, v_cruise, distances, waypoints):
+    #     total_distance = distances[-1]
+    #     accel_distance = v_cruise ** 2 / (2 * self.max_acc)
+    #     cruise_distance = total_distance - accel_distance
+    #     times = [0]
+    #     v_i = 0
+    #     for i in range(1, len(waypoints)):
+    #         distance = distances[i]
+    #         if distance <= accel_distance:
+    #             # accelerating
+    #             t = (-v_i + np.sqrt(v_i ** 2 + 2 * self.max_acc * distance)) / self.max_acc
+    #             times.append(t)
+    #             v_i = self.max_acc * t
+    #         elif distance <= cruise_distance:
+    #             # cruising
+    #             t = (distance - accel_distance) / v_cruise
+    #             times.append(t + times[-1])
+    #         else:
+    #             # decelerating
+    #             t = (-v_i + np.sqrt(v_i ** 2 - 2 * self.max_acc * (total_distance - distance))) / - self.max_acc
+    #             times.append(t + times[-1])
+    #             v_i = v_i - self.max_acc * t
+    #     return times  
 
-    def interpolate_joint_trajectory(self, joint_trajectory, times, distances, v_cruise):
+    def interpolate_joint_trajectory(self, joint_trajectory):
         """
         Time-parameterize joint trajectory with trapezoidal velocity profile.
 
@@ -202,35 +202,100 @@ class TrajectoryGenerator:
 
         """
         print("interpolate_joint_trajectory")
+        frequency = self.dt
+        duty_cycle = 0.25
         num_waypoints = len(joint_trajectory)
-        num_segments = num_waypoints - 1
+        num_joints = 7
+        waypoints = np.array(joint_trajectory)
+        times = np.linspace(0, num_waypoints * frequency, num_waypoints)
         num_points_per_segment = []
+        num_segments = num_waypoints - 1
         for segment in range(num_segments):
-            delta_t = times[0, segment + 1] - times[0, segment]
-            num_points_per_segment.append(int(delta_t * self.dt))
-        waypoints = []
-        total_distance = distances[-1]
-        accel_distance = v_cruise ** 2 / (2 * self.max_acc)
-        cruise_distance = total_distance - accel_distance
+            dt = times[0, segment + 1] - times[0, segment]
+            num_points_per_segment.append(int(dt * frequency))
+
+        # Pre-allocate trajectory matrix
+        trajectory = np.zeros((7, int(np.sum(num_points_per_segment))))
+
+        # Fill in trajectory segment-by-segment
+        segment_start_point = 0
         for segment in range(num_segments):
             points_in_segment = num_points_per_segment[segment]
-            distance = distances[segment]
-            status = None
-            if distance <= accel_distance:
-                status = "accel"
-            elif distance <= cruise_distance:
-                status = "cruise"
-            else:
-                status = "decel"
-            for i in range(points_in_segment):
-                t = i * self.dt
-                if status == "accel":
-                    waypoints.append(joint_trajectory[segment] + 0.5 * self.max_acc * t ** 2)
-                elif status == "cruise":
-                    waypoints.append(joint_trajectory[segment] + v_cruise * t)
-                else:
-                    t = points_in_segment - 1 - i * self.dt
-                    waypoints.append(joint_trajectory[segment] + 0.5 * self.max_acc * t ** 2)
+            segment_end_point = segment_start_point + points_in_segment
+
+            num_ramp_points = int(duty_cycle * points_in_segment)
+            ramp_time = (times[0, segment + 1] - times[0, segment]) * duty_cycle
+
+            # --------------- BEGIN STUDENT SECTION ----------------------------------
+            # TODO: Calculate the maximum velocity for this segment
+            vm = np.zeros(num_joints)
+            for joint in range(num_joints):
+                q0 = waypoints[joint, segment]
+                qf = waypoints[joint, segment + 1]
+                displacement = qf - q0
+                total_time = times[0, segment + 1] - times[0, segment]
+                vm[joint] = displacement / (total_time - ramp_time)
+
+            # TODO: Fill in the points for this segment of the trajectory
+            # You need to implement the trapezoidal velocity profile here
+            # Hint: Use three phases: ramp up, constant velocity, and ramp down
+
+            # Example structure (you need to fill in the correct calculations):
+            for joint in range(num_joints):
+                q0 = waypoints[joint, segment]
+                qf = waypoints[joint, segment + 1]
+                v_max = vm[joint]
+                a_max = v_max / ramp_time
+
+                for i in range(points_in_segment):
+                    t = i / frequency
+                    if i < num_ramp_points:
+                        # TODO: Implement ramp up phase
+                        q = q0 + 0.5 * a_max * t**2
+                    elif i >= points_in_segment - num_ramp_points:
+                        # TODO: Implement ramp down phase
+                        time_from_end = (points_in_segment - i) / frequency
+                        q = qf - 0.5 * a_max * time_from_end**2
+                    else:
+                        # TODO: Implement constant velocity phase
+                        q_ramp_end = q0 + 0.5 * v_max * ramp_time
+                        q = q_ramp_end + v_max * (t - ramp_time)
+
+                    trajectory[joint, segment_start_point + i] = q
+
+            # --------------- END STUDENT SECTION ------------------------------------
+
+            segment_start_point += points_in_segment
+
+        return trajectory
+        # num_segments = num_waypoints - 1
+        # num_points_per_segment = []
+        # for segment in range(num_segments):
+        #     delta_t = times[segment + 1] - times[segment]
+        #     num_points_per_segment.append(int(delta_t * self.dt))
+        # waypoints = []
+        # total_distance = distances[-1]
+        # accel_distance = v_cruise ** 2 / (2 * self.max_acc)
+        # cruise_distance = total_distance - accel_distance
+        # for segment in range(num_segments):
+        #     points_in_segment = num_points_per_segment[segment]
+        #     distance = distances[segment]
+        #     status = None
+        #     if distance <= accel_distance:
+        #         status = "accel"
+        #     elif distance <= cruise_distance:
+        #         status = "cruise"
+        #     else:
+        #         status = "decel"
+        #     for i in range(points_in_segment):
+        #         t = i * self.dt
+        #         if status == "accel":
+        #             waypoints.append(joint_trajectory[segment] + 0.5 * self.max_acc * t ** 2)
+        #         elif status == "cruise":
+        #             waypoints.append(joint_trajectory[segment] + v_cruise * t)
+        #         else:
+        #             t = points_in_segment - 1 - i * self.dt
+        #             waypoints.append(joint_trajectory[segment] + 0.5 * self.max_acc * t ** 2)
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """
