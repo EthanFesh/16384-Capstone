@@ -1,4 +1,5 @@
 import numpy as np
+from task_config import TaskConfig
 
 def _slerp(q0, q1, t):
     """Spherical Linear Interpolation between quaternions"""
@@ -44,9 +45,11 @@ def _rotation_to_quaternion(R):
             qz = 0.25 * S
     return np.array([qw, qx, qy, qz])
 
-def _compute_rotation_error(self, R_current, R_target):
+def _compute_rotation_error(R_current, R_target):
     """Compute rotation error in axis-angle form"""
-    R_error = R_target @ R_current.T
+    current_rotation = R_current.rotation
+    target_rotation = R_target.rotation
+    R_error = target_rotation @ current_rotation.T
     angle = np.arccos((np.trace(R_error) - 1) / 2)
    
     if angle < TaskConfig.IK_TOLERANCE:

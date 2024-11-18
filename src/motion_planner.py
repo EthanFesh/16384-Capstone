@@ -205,8 +205,9 @@ class TrajectoryGenerator:
         frequency = self.dt
         duty_cycle = 0.25
         num_waypoints = len(joint_trajectory)
-        num_joints = 7
+        print(joint_trajectory)
         waypoints = np.array(joint_trajectory)
+        num_joints = 7
         times = np.linspace(0, num_waypoints * frequency, num_waypoints)
         num_points_per_segment = []
         num_segments = num_waypoints - 1
@@ -266,7 +267,7 @@ class TrajectoryGenerator:
             # --------------- END STUDENT SECTION ------------------------------------
 
             segment_start_point += points_in_segment
-
+        print(trajectory)
         return trajectory
         # num_segments = num_waypoints - 1
         # num_points_per_segment = []
@@ -338,7 +339,11 @@ class TrajectoryGenerator:
             i = i + 1
             if (i % 10 == 0):
                 print(i)
-        return joint_trajectory
+        output = []
+        for pose in joint_trajectory:
+            if not (pose is None):
+                output.append(pose.tolist())
+        return output
 
 class TrajectoryFollower:
     def __init__(self):
