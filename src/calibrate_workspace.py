@@ -11,6 +11,7 @@ class WorkspaceCalibrator:
         """Calibrate pen holder positions through guided movement"""
         print("\nCalibrating pen holder...")
         print("Moving to home position...")
+        self.fa.open_gripper()
         self.fa.reset_joints()
         self.fa.close_gripper()
         
@@ -20,9 +21,9 @@ class WorkspaceCalibrator:
         self.fa.run_guide_mode(duration=self.duration)  # Allow manual positioning
         
         # Record position
-        current_pose = self.fa.get_pose()
-        print(f"Recorded pen holder at: {current_pose.translation}")
-        np.save("pen_holder_pose.npy", current_pose)
+        current_pose = self.fa.get_joints()
+        # print(f"Recorded pen holder at: {current_pose.translation}")
+        np.save("post_pen.npy", current_pose)
         return current_pose
     
     def calibrate_whiteboard(self):
@@ -96,8 +97,8 @@ def main():
     
     # Perform calibration
     pen_positions = calibrator.calibrate_pen_holders()
-    whiteboard_pose = calibrator.calibrate_whiteboard()
-    drop_pose = calibrator.calibrate_drop_location()
+    # whiteboard_pose = calibrator.calibrate_whiteboard()
+    # drop_pose = calibrator.calibrate_drop_location()
 
 if __name__ == "__main__":
     main()

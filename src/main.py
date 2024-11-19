@@ -37,11 +37,15 @@ fa.reset_joints()
 
 # Wrapper function that generates and follows trajectories to a desired pose
 def go(end_pose):
-    cartesian_trajectory = TG.generate_straight_line(fa.get_pose(),end_pose)
-    joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
+    home_joints = fa.get_joints().tolist()
+    end_pose = end_pose.tolist()
+    # cartesian_trajectory = TG.generate_straight_line(fa.get_pose(),end_pose)
+    # joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
     # distances = TG.get_distances(cartesian_trajectory)
     # v_cruise = TG.get_v_cruise(distances[-1])
     # times = TG.get_times(v_cruise,distances, cartesian_trajectory)
+    # joint_trajectory = np.array(joint_trajectory)
+    joint_trajectory = [home_joints, end_pose]
     joint_trajectory = np.array(joint_trajectory)
     TF.follow_joint_trajectory(TG.interpolate_joint_trajectory(joint_trajectory))
 
@@ -52,6 +56,7 @@ green_pen = pink_pen
 
 drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)
 whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
+post_pen_pick_pose = np.load("post_pen.npy", allow_pickle=True)
 
 print('Ready')
 while (True):
@@ -59,7 +64,7 @@ while (True):
     if response == 'p':
         response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen: ")
         if (response == 'p'):
-            go(pink_pen.item())
+            go(post_pen_pick_pose)
         elif (response == 'i'):
             go(indigo_pen.item())
         elif (response == 'g'):
