@@ -136,7 +136,7 @@ class Robot:
 
         return jacobians
     
-    def _inverse_kinematics(self, target_pose, seed_joints):
+    def _inverse_kinematics(self, target_pose, seed_joints, dh_params):
         """
         Compute inverse kinematics using Jacobian pseudo-inverse method.
         
@@ -148,7 +148,7 @@ class Robot:
         
         Parameters
         ----------
-        target_pose : RigidTransform
+        target_pose : 4x4 matrix
             Desired end-effector pose
         seed_joints : np.ndarray
             Initial joint configuration
@@ -172,8 +172,8 @@ class Robot:
             seed_joints = fa.get_joints()
         if seed_joints.shape != (self.dof,):
             raise ValueError(f'Invalid initial_thetas: Expected shape ({self.dof},), got {seed_joints.shape}.')
-        if type(target_pose) != RigidTransform:
-            raise ValueError('Invalid target_pose: Expected RigidTransform.')
+        # if type(target_pose) != RigidTransform:
+        #     raise ValueError('Invalid target_pose: Expected RigidTransform.')
         
         # Get iteration parameters
         max_iters = TaskConfig.IK_MAX_ITERATIONS
@@ -184,11 +184,13 @@ class Robot:
         
         for iteration in range(max_iters):
             # Get current pose
-            current_pose = fa.get_pose()
+            current_pose = self.forward_kinematics(dh_params, current_joints)
             
             # Compute errors
-            position_error = target_pose.translation - current_pose.translation
+
+            position_error = target_pose[:3,3] - current_pose[:3,3]
             orientation_error = _compute_rotation_error(current_pose, target_pose)
+            
             error = np.concatenate([position_error, orientation_error])
             error_magnitude = np.linalg.norm(error)
             
@@ -197,8 +199,6 @@ class Robot:
                 if fa.is_joints_reachable(current_joints):
                     print(current_joints)
                     return current_joints
-                else:
-                    return None
             
             # Get Jacobian
             J = fa.get_jacobian(current_joints)
@@ -207,19 +207,16 @@ class Robot:
             svd_values = np.linalg.svd(J, compute_uv=False)
             if np.min(svd_values) < 0.1:
                 return None
-                
-            # Compute right pseudo-inverse, since the franka arm is underconstrained
-            try:
-                J_pinv = J.T @ np.linalg.inv(J @ J.T)
-            except np.linalg.LinAlgError:
-                return None
+
+            J_pinv = np.linalg.pinv(J)
             
             # Compute joint update
             delta_q = J_pinv @ error
             
             # Limit step size
             if np.linalg.norm(delta_q) > step_size:
-                delta_q = step_size * delta_q / np.linalg.norm(delta_q)
+                delta_q = step_size * delta_q / np.linalg.norm(delta_q) 
+            '''TODO: you can, but you don't need to check step_size inside IK'''
             
             # Update joints
             new_joints = current_joints + delta_q
@@ -238,5 +235,3 @@ class Robot:
         
         # Failed to converge within max iterations
         return None
-
-

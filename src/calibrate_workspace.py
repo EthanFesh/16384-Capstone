@@ -5,15 +5,13 @@ from autolab_core import RigidTransform
 class WorkspaceCalibrator:
     def __init__(self):
         self.fa = FrankaArm()
-        self.duration = 12
+        self.duration = 30
         
     def calibrate_pen_holders(self):
         """Calibrate pen holder positions through guided movement"""
         print("\nCalibrating pen holder...")
         print("Moving to home position...")
-        self.fa.open_gripper()
         self.fa.reset_joints()
-        self.fa.close_gripper()
         
 
         input(f"Press Enter to calibrate pen holder")
@@ -21,9 +19,9 @@ class WorkspaceCalibrator:
         self.fa.run_guide_mode(duration=self.duration)  # Allow manual positioning
         
         # Record position
-        current_pose = self.fa.get_joints()
-        # print(f"Recorded pen holder at: {current_pose.translation}")
-        np.save("post_pen.npy", current_pose)
+        current_pose = self.fa.get_pose()
+        print(f"Recorded pen holder at: {current_pose.translation}")
+        np.save("pen_holder_pose.npy", current_pose.translation)
         return current_pose
     
     def calibrate_whiteboard(self):
@@ -36,7 +34,7 @@ class WorkspaceCalibrator:
         points = []
         for i in range(3):
             if i == 0:
-                input(f"Press Enter to record whiteboard center point")
+                input(f"Press Enter to record whiteboard origin")
             else:
                 input(f"Press Enter to record whiteboard point {i+1}")
             print(f"You can proceed after {self.duration} seconds")
@@ -54,14 +52,11 @@ class WorkspaceCalibrator:
         
         # Create whiteboard frame
         rotation = self._compute_orientation_matrix(normal)
-        whiteboard_pose = RigidTransform(
-            rotation=rotation,
-            translation=p1,
-            from_frame='whiteboard',
-            to_frame='world'
-        )
-        np.save("whiteboard_pose.npy", whiteboard_pose)
-        print(f"Recorded whiteboard at: {whiteboard_pose}")
+        T = np.eye(4)
+        T[:3, :3] = rotation
+        T[:3, 3] = p1
+        print(f"Recorded whiteboard at: {T}")
+        np.save("whiteboard_pose.npy", T)
         
         return current_pose
     
@@ -74,9 +69,8 @@ class WorkspaceCalibrator:
         print(f"Move robot above the drop bin, the position will be printed out after {self.duration} seconds")
         self.fa.run_guide_mode(duration=self.duration)
         drop_pose = self.fa.get_pose()
-
-        np.save("drop_bin_pose.npy", drop_pose)
-        print(f"Recorded drop bin at: {drop_pose}")
+        print(f"Recorded drop bin at: {drop_pose.translation}")
+        np.save("drop_bin_pose.npy", drop_pose.translation)
         return drop_pose
     
     def _compute_orientation_matrix(self, normal):
@@ -97,8 +91,8 @@ def main():
     
     # Perform calibration
     pen_positions = calibrator.calibrate_pen_holders()
-    # whiteboard_pose = calibrator.calibrate_whiteboard()
-    # drop_pose = calibrator.calibrate_drop_location()
+    whiteboard_pose = calibrator.calibrate_whiteboard()
+    drop_pose = calibrator.calibrate_drop_location()
 
 if __name__ == "__main__":
     main()

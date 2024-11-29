@@ -47,8 +47,8 @@ def _rotation_to_quaternion(R):
 
 def _compute_rotation_error(R_current, R_target):
     """Compute rotation error in axis-angle form"""
-    current_rotation = R_current.rotation
-    target_rotation = R_target.rotation
+    current_rotation = R_current[:3, :3]
+    target_rotation = R_target[:3, :3]
     R_error = target_rotation @ current_rotation.T
     angle = np.arccos((np.trace(R_error) - 1) / 2)
    

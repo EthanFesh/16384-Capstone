@@ -46,28 +46,28 @@ class TrajectoryGenerator:
         - Number of points should give enough resolution for smooth motion
         - Each waypoint should be a 4x4 transformation matrix
         """
-        d_0 = start_pose.translation
-        d_1 = end_pose.translation
-        p_0 = start_pose.rotation
-        p_1 = end_pose.rotation
+        d_0 = start_pose[:3, 3]
+        d_1 = end_pose[:3, 3]
+        p_0 = start_pose[:3, :3]
+        p_1 = end_pose[:3, :3]
         p_0 = _rotation_to_quaternion(p_0)
         p_1 = _rotation_to_quaternion(p_1)
-        # print(d_0, d_1, start_pose[:3, :3], end_pose[:3, :3])
         num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)
-        # print(num_points)
         cartesian_trajectory = []
         for i in range(num_points):
             t = i / num_points
-            lerp = d_0+ t * (d_1 - d_0)
+            lerp = d_0 + t * (d_1 - d_0)
             slerp = _slerp(p_0, p_1, t)
             R = _quaternion_to_rotation(slerp)
-            pose = RigidTransform(rotation=R, translation=lerp)
+            pose = np.eye(4)
+            pose[:3, :3] = R
+            pose[:3, 3] = lerp
+            pose.tolist()
             cartesian_trajectory.append(pose)
-            # cartesian_trajectory.append(np.block([[R, lerp.reshape(3, 1)], [0, 0, 0, 1]]))
-        # print(cartesian_trajectory[-1])
+        cartesian_trajectory = np.array(cartesian_trajectory)
         return cartesian_trajectory
         
-    def generate_curve(self):
+    def generate_curve(self, poses):
         """
         This function creates a smooth curved trajectory in Cartesian space.
 
@@ -95,7 +95,17 @@ class TrajectoryGenerator:
         - Line segments should be small enough for smooth motion
 
         """
-        raise NotImplementedError("Implement generate_curve")
+        start_idx = 0
+        end_idx = 1
+        cartesian_trajectory = []
+        '''TODO: currently i'm assuming the poses passed in have the right spacing for smooth motion, and
+        we can ensure that in main when we generate the poses, but feel free to add stuff here as needed'''
+        while end_idx < len(poses):
+            traj = self.generate_straight_line(poses[start_idx], poses[end_idx]).tolist()
+            cartesian_trajectory.extend(traj)
+            start_idx += 1
+            end_idx += 1
+        return np.array(cartesian_trajectory)
     
     def interpolate_cartesian_trajectory(self, cartesian_trajectory):
         """
@@ -163,98 +173,26 @@ class TrajectoryGenerator:
         - Keep 20ms between waypoints as required by controller
 
         """
-        num_points = 300
-        trajectory = []
-        for i in range(num_points):
-            t = i/num_points
-            new_pos = waypoints[0]*(1-t) + waypoints[1]*t
-            new_pos = new_pos.tolist()
-            trajectory.append(new_pos)
-        trajectory = np.array(trajectory)
+        start_idx = 0
+        end_idx = 1
+        while end_idx < len(waypoints):
+            '''TODO: not sure if we need to do something different now that we have more points 
+            and are interpolating between each pair, I feel like this doesn't really implement the
+            trapezoidal velocity, it's the same as what we did for the capstone but just between each
+            pair of points instead of just a start and end point. but also
+            even if this is right the number of points might also need to be tweaked. maybe like a function
+            that depending on the distance between the start and end point determines the number of points'''
+            num_points = 300
+            trajectory = []
+            for i in range(num_points):
+                t = i/num_points
+                new_pos = waypoints[start_idx]*(1-t) + waypoints[end_idx]*t
+                new_pos = new_pos.tolist()
+                trajectory.append(new_pos)
+            trajectory = np.array(trajectory)
+            start_idx += 1
+            end_idx += 1
         return trajectory
-        # frequency = 1/self.dt
-        # duty_cycle = 0.25
-        # # Number of joints
-        # num_joints = waypoints.shape[1]
-        # # Number of waypoints
-        # num_waypoints = waypoints.shape[0]
-        # # Number of segments between waypoints
-        # num_segments = num_waypoints - 1
-        # times = np.linspace(0, num_waypoints * frequency, num_waypoints).reshape(1, -1)
-        # if times.shape != (1, num_waypoints):
-        #     raise ValueError('Size of times vector is incorrect!')
-
-        # if num_waypoints < 2:
-        #     raise ValueError('Insufficient number of waypoints.')
-
-        # if not isinstance(frequency, (int, float)) or frequency < 5:
-        #     raise ValueError('Invalid control frequency (must be at least 5Hz)')
-
-        # if duty_cycle < 0 or duty_cycle > 0.5:
-        #     raise ValueError('Invalid duty cycle!')
-
-        # # Calculate number of points per segment
-        # num_points_per_segment = [100]
-        # # for segment in range(num_segments):
-        # #     dt = times[0, segment + 1] - times[0, segment]
-        # #     num_points_per_segment.append(int(dt * frequency))
-
-        # # Pre-allocate trajectory matrix
-        # trajectory = np.zeros((int(np.sum(num_points_per_segment)), num_joints))
-
-        # # Fill in trajectory segment-by-segment
-        # segment_start_point = 0
-        # print(num_segments)
-        # for segment in range(num_segments):
-        #     print(segment)
-        #     points_in_segment = num_points_per_segment[segment]
-        #     segment_end_point = segment_start_point + points_in_segment
-
-        #     num_ramp_points = int(duty_cycle * points_in_segment)
-        #     ramp_time = (times[0, segment + 1] - times[0, segment]) * duty_cycle
-
-        #     # --------------- BEGIN STUDENT SECTION ----------------------------------
-        #     # TODO: Calculate the maximum velocity for this segment
-        #     vm = np.zeros(num_joints)
-        #     for joint in range(num_joints):
-        #         q0 = waypoints[segment, joint]
-        #         qf = waypoints[segment + 1, joint]
-        #         displacement = qf - q0
-        #         total_time = times[0, segment + 1] - times[0, segment]
-        #         vm[joint] = displacement / (total_time - ramp_time)
-
-        #     # TODO: Fill in the points for this segment of the trajectory
-        #     # You need to implement the trapezoidal velocity profile here
-        #     # Hint: Use three phases: ramp up, constant velocity, and ramp down
-
-        #     # Example structure (you need to fill in the correct calculations):
-        #     for joint in range(num_joints):
-        #         q0 = waypoints[segment, joint]
-        #         qf = waypoints[segment + 1, joint]
-        #         v_max = vm[joint]
-        #         a_max = v_max / ramp_time
-
-        #         for i in range(points_in_segment):
-        #             t = i / frequency
-        #             if i < num_ramp_points:
-        #                 # TODO: Implement ramp up phase
-        #                 q = q0 + 0.5 * a_max * t**2
-        #             elif i >= points_in_segment - num_ramp_points:
-        #                 # TODO: Implement ramp down phase
-        #                 time_from_end = (points_in_segment - i) / frequency
-        #                 q = qf - 0.5 * a_max * time_from_end**2
-        #             else:
-        #                 # TODO: Implement constant velocity phase
-        #                 q_ramp_end = q0 + 0.5 * v_max * ramp_time
-        #                 q = q_ramp_end + v_max * (t - ramp_time)
-
-        #             trajectory[segment_start_point + i, joint] = q
-
-        #     # --------------- END STUDENT SECTION ------------------------------------
-
-        #     segment_start_point += points_in_segment
-        # print(trajectory)
-        # return trajectory
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """
@@ -292,7 +230,7 @@ class TrajectoryGenerator:
         print(len(cartesian_trajectory))
         i = 0
         for pose in cartesian_trajectory:
-            config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else None)
+            config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else None, RobotConfig.DH_PARAMS)
             joint_trajectory.append(config)
             i = i + 1
             if (i % 10 == 0):
