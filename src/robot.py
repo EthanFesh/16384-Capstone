@@ -12,7 +12,7 @@ class Robot:
         """Initialize motion planner with robot controller"""
         self.dof = 7
     
-    def forward_kinematcis(self, dh_parameters, thetas):
+    def forward_kinematics(self, dh_parameters, thetas):
         """
         Compute foward kinematics
         
@@ -38,11 +38,11 @@ class Robot:
         if thetas.shape[0] != self.dof:
             raise ValueError(f'Invalid number of joints: {thetas.shape[0]} found, expecting {self.dof}')
         
-        frames = np.zeros((4, 4, len(dh_parameters)+1))
+        frames = np.zeros((4, 4, len(dh_parameters)))
         frames[:,:,0] = np.eye(4)
     
         # For each joint
-        for i in range(len(dh_parameters)):
+        for i in range(len(dh_parameters)-1):
             # Get DH parameters
             a = dh_parameters[i,0]      # Link length
             alpha = dh_parameters[i,1]   # Link twist
@@ -55,17 +55,18 @@ class Robot:
             ca = np.cos(alpha)
             sa = np.sin(alpha)
             
-            # Build DH transformation matrix
+            # Build DH transformation matrix following updated convention from piazza
             Ti = np.array([
-                [ct, -st*ca, st*sa, a*ct],
-                [st, ct*ca, -ct*sa, a*st],
-                [0, sa, ca, d],
+                [ct, -st, 0, a*ct],
+                [st, ct, 0, a*st],
+                [0, 0, 1, d],
                 [0, 0, 0, 1]
             ])
             
             # Update frame by multiplying with previous frame
             frames[:,:,i+1] = frames[:,:,i] @ Ti
         
+        '''TODO: Add a final transformation from the flange to the center of grip or tip of pen'''
         # Return final transformation (end-effector pose)
         return frames[:,:,-1]
     
@@ -187,7 +188,6 @@ class Robot:
             current_pose = self.forward_kinematics(dh_params, current_joints)
             
             # Compute errors
-
             position_error = target_pose[:3,3] - current_pose[:3,3]
             orientation_error = _compute_rotation_error(current_pose, target_pose)
             
@@ -197,7 +197,7 @@ class Robot:
             # Check convergence
             if error_magnitude < convergence_threshold:
                 if fa.is_joints_reachable(current_joints):
-                    print(current_joints)
+                    print("Converged!")
                     return current_joints
             
             # Get Jacobian
@@ -205,7 +205,8 @@ class Robot:
             
             # Check for singularity
             svd_values = np.linalg.svd(J, compute_uv=False)
-            if np.min(svd_values) < 0.1:
+            if np.min(svd_values) < 0.001:
+                print("Near singularity")
                 return None
 
             J_pinv = np.linalg.pinv(J)
@@ -214,9 +215,9 @@ class Robot:
             delta_q = J_pinv @ error
             
             # Limit step size
-            if np.linalg.norm(delta_q) > step_size:
-                delta_q = step_size * delta_q / np.linalg.norm(delta_q) 
-            '''TODO: you can, but you don't need to check step_size inside IK'''
+            # if np.linalg.norm(delta_q) > step_size:
+            #     delta_q = step_size * delta_q / np.linalg.norm(delta_q) 
+            # '''TODO: you can, but you don't need to check step_size inside IK'''
             
             # Update joints
             new_joints = current_joints + delta_q
@@ -225,13 +226,15 @@ class Robot:
             if not fa.is_joints_reachable(new_joints):
                 new_joints = np.clip(
                     new_joints,
-                    RobotConfig.JOINT_LIMITS_LOWER,
-                    RobotConfig.JOINT_LIMITS_UPPER
+                    RobotConfig.JOINT_LIMITS_MIN,
+                    RobotConfig.JOINT_LIMITS_MAX
                 )
                 if not fa.is_joints_reachable(new_joints):
+                    print("unreachable new config")
                     return None
             
             current_joints = new_joints
         
         # Failed to converge within max iterations
+        print("did not converge within max iter")
         return None

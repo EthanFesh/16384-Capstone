@@ -15,6 +15,17 @@ from utils import _slerp, _rotation_to_quaternion, _quaternion_to_rotation
 from robot import Robot
 import rospy
 
+dh_parameters = np.array([
+    [0, 0, 0.333, None],         # Joint 1
+    [0, -np.pi/2, 0, None],      # Joint 2
+    [0, np.pi/2, 0.316, None],   # Joint 3
+    [0.0825, np.pi/2, 0, None],  # Joint 4
+    [-0.0825, -np.pi/2, 0.384, None], # Joint 5
+    [0, np.pi/2, 0, None],       # Joint 6
+    [0.088, np.pi/2, 0, None],   # Joint 7
+    [0, 0, 0.107, 0]            # Flange
+])
+
 class TrajectoryGenerator:
     def __init__(self, dt=0.02):
         self.dt = dt
@@ -175,6 +186,8 @@ class TrajectoryGenerator:
         """
         start_idx = 0
         end_idx = 1
+        print(waypoints)
+        print(len(waypoints))
         while end_idx < len(waypoints):
             '''TODO: not sure if we need to do something different now that we have more points 
             and are interpolating between each pair, I feel like this doesn't really implement the
@@ -203,7 +216,7 @@ class TrajectoryGenerator:
         cartesian_trajectory : array_like
             Array of poses in Cartesian space
 
-        Returns
+        Returndh_parameterss
         -------
         array_like
             Joint space trajectory
@@ -227,14 +240,14 @@ class TrajectoryGenerator:
         print("in cartesian to joint")
         joint_trajectory = []
         robot = Robot()
-        print(len(cartesian_trajectory))
+        # print(len(cartesian_trajectory))
         i = 0
         for pose in cartesian_trajectory:
-            config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else None, RobotConfig.DH_PARAMS)
+            config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else None, dh_parameters)
             joint_trajectory.append(config)
             i = i + 1
-            if (i % 10 == 0):
-                print(i)
+            # if (i % 10 == 0):
+            #     print(i)
         output = []
         for pose in joint_trajectory:
             if not (pose is None):

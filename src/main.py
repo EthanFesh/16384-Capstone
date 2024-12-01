@@ -41,13 +41,17 @@ def go(end_pose):
     current_pose[:3, :3] = fa.get_pose().rotation
     current_pose[:3, 3] = fa.get_pose().translation
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
+    print(cartesian_trajectory)
     joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
+    print(joint_trajectory)
     joint_trajectory = np.array(joint_trajectory)
     TF.follow_joint_trajectory(TG.interpolate_joint_trajectory(joint_trajectory))
 
 # read the pen holder position from pen_holder_pose.npy
 pen_rot = fa.get_pose().rotation
 pink_pen_xyz = np.load("pen_holder_pose.npy", allow_pickle=True)
+print(pink_pen_xyz.shape)
+print(pink_pen_xyz)
 '''TODO: update the displacement with the actual values'''
 indigo_pen_xyz = pink_pen_xyz + np.array([0, 0, 0.1])
 green_pen_xyz = pink_pen_xyz + np.array([0, 0, 0.2])
@@ -74,21 +78,22 @@ line_1_end_pose = np.eye(4)
 line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
 line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([0.1, 0, 0])
 
-circle_start_pose = line_1_end_pose
-circle_xyzs = []
-'''TODO: generate points in the circle'''
-circle_poses = []
-for circle_xyz in circle_xyzs:
-    circle_pose = np.eye(4)
-    circle_pose[:3, :3] = whiteboard_pose[:3, :3]
-    circle_pose[:3, 3] = circle_xyz
-    circle_poses.append(circle_pose)
+# circle_start_pose = line_1_end_pose
+# circle_xyzs = []
+# '''TODO: generate points in the circle'''
+# circle_poses = []
+# for circle_xyz in circle_xyzs:
+#     circle_pose = np.eye(4)
+#     circle_pose[:3, :3] = whiteboard_pose[:3, :3]
+#     circle_pose[:3, 3] = circle_xyz
+#     circle_poses.append(circle_pose)
 
-'''TODO: update the displacement with the actual value'''
-line_2_start_pose = circle_poses[-1]
-line_2_end_pose = np.eye(4)
-line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([0.1, 0, 0])
+# '''TODO: update the displacement with the actual value'''
+# print(len(circle_poses))
+# line_2_start_pose = circle_poses[(len(circle_poses)-1)]
+# line_2_end_pose = np.eye(4)
+# line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
+# line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([0.1, 0, 0])
 
 # Define drop bin pose (4x4 matrix)
 drop_xyz = np.load("drop_bin_pose.npy", allow_pickle=True)

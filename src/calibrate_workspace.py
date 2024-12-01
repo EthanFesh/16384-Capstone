@@ -5,13 +5,15 @@ from autolab_core import RigidTransform
 class WorkspaceCalibrator:
     def __init__(self):
         self.fa = FrankaArm()
-        self.duration = 30
+        self.duration = 15
         
     def calibrate_pen_holders(self):
         """Calibrate pen holder positions through guided movement"""
         print("\nCalibrating pen holder...")
         print("Moving to home position...")
         self.fa.reset_joints()
+        self.fa.open_gripper()
+        self.fa.close_gripper()
         
 
         input(f"Press Enter to calibrate pen holder")
@@ -21,6 +23,8 @@ class WorkspaceCalibrator:
         # Record position
         current_pose = self.fa.get_pose()
         print(f"Recorded pen holder at: {current_pose.translation}")
+        # print(type(current_pose.translation))
+        # print(current_pose.translation.shape)
         np.save("pen_holder_pose.npy", current_pose.translation)
         return current_pose
     
