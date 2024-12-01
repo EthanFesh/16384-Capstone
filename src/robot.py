@@ -38,16 +38,17 @@ class Robot:
         if thetas.shape[0] != self.dof:
             raise ValueError(f'Invalid number of joints: {thetas.shape[0]} found, expecting {self.dof}')
         
-        frames = np.zeros((4, 4, len(dh_parameters)))
+        frames = np.zeros((4, 4, len(dh_parameters)+1))
         frames[:,:,0] = np.eye(4)
-        # thetas = np.zeros(7)
+        thetas = np.zeros(7)
     
         # For each joint
-        for i in range(len(dh_parameters)-1):
+        for i in range(len(dh_parameters)):
             # Get DH parameters
             a = dh_parameters[i,0]      # Link length
             alpha = dh_parameters[i,1]   # Link twist
             d = dh_parameters[i,2]       # Link offset
+    
             if i<7 :
                 theta = thetas[i]            # Joint angle
             else : 
@@ -67,15 +68,15 @@ class Robot:
                 [0, 0, 0, 1]
             ])
             
-            
             # Update frame by multiplying with previous frame
             frames[:,:,i+1] = frames[:,:,i] @ Ti
-            # print("-----")
-            # print(frames[:,:,i])
-            # print("-----")
-        
+            
+        # for i in range(9):
+        #     print("-----")
+        #     print(i)
+        #     print(frames[:,:,i])
+        #     print("-----")
         '''TODO: Add a final transformation from the flange to the center of grip or tip of pen'''
-        # print(frames)
         # Return final transformation (end-effector pose)
         return frames[:,:,-1]
     
