@@ -41,17 +41,15 @@ def go(end_pose):
     current_pose[:3, :3] = fa.get_pose().rotation
     current_pose[:3, 3] = fa.get_pose().translation
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
-    print(cartesian_trajectory)
+    # print(cartesian_trajectory)
     joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
-    print(joint_trajectory)
+    # print(joint_trajectory)
     joint_trajectory = np.array(joint_trajectory)
     TF.follow_joint_trajectory(TG.interpolate_joint_trajectory(joint_trajectory))
 
 # read the pen holder position from pen_holder_pose.npy
 pen_rot = fa.get_pose().rotation
 pink_pen_xyz = np.load("pen_holder_pose.npy", allow_pickle=True)
-print(pink_pen_xyz.shape)
-print(pink_pen_xyz)
 '''TODO: update the displacement with the actual values'''
 indigo_pen_xyz = pink_pen_xyz + np.array([0, 0, 0.1])
 green_pen_xyz = pink_pen_xyz + np.array([0, 0, 0.2])

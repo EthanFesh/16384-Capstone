@@ -40,6 +40,7 @@ class Robot:
         
         frames = np.zeros((4, 4, len(dh_parameters)))
         frames[:,:,0] = np.eye(4)
+        # thetas = np.zeros(7)
     
         # For each joint
         for i in range(len(dh_parameters)-1):
@@ -47,7 +48,10 @@ class Robot:
             a = dh_parameters[i,0]      # Link length
             alpha = dh_parameters[i,1]   # Link twist
             d = dh_parameters[i,2]       # Link offset
-            theta = thetas[i]            # Joint angle
+            if i<7 :
+                theta = thetas[i]            # Joint angle
+            else : 
+                theta = 0
             
             # Compute transformation matrix elements
             ct = np.cos(theta)
@@ -57,20 +61,25 @@ class Robot:
             
             # Build DH transformation matrix following updated convention from piazza
             Ti = np.array([
-                [ct, -st, 0, a*ct],
-                [st, ct, 0, a*st],
-                [0, 0, 1, d],
+                [ct, -st, 0, a],
+                [st*ca, ct*ca, -sa, -d*sa],
+                [st*sa, ct*sa, ca, d*ca],
                 [0, 0, 0, 1]
             ])
             
+            
             # Update frame by multiplying with previous frame
             frames[:,:,i+1] = frames[:,:,i] @ Ti
+            # print("-----")
+            # print(frames[:,:,i])
+            # print("-----")
         
         '''TODO: Add a final transformation from the flange to the center of grip or tip of pen'''
+        # print(frames)
         # Return final transformation (end-effector pose)
         return frames[:,:,-1]
     
-    def jacobians(self, thetas):
+    def jacobians(self, thetas, dh_params):
         """
         Compute the Jacobians for each frame.
 
@@ -93,9 +102,14 @@ class Robot:
         # For each frame
         for frame in range(self.dof + 1):
             # Get base pose for this frame
-            base_pose = self.forward_kinematics(self.dh_params[:frame], thetas[:frame])[0] if frame > 0 else np.eye(4)
-            base_pos = base_pose.translation
-            base_rot = base_pose.rotation
+            if frame > 0:
+                base_pose = self.forward_kinematics(dh_params[:frame], thetas[:frame])
+                base_pos = base_pose[:3,3]
+                base_rot = base_pose[:3,:3]
+            else:
+                base_pose = np.eye(4)
+                base_pos = base_pose[:3,3]
+                base_rot = base_pose[:3,:3]
             
             # For each joint affecting this frame
             for joint in range(min(frame, self.dof)):
@@ -104,9 +118,14 @@ class Robot:
                 thetas_perturbed[joint] += epsilon
                 
                 # Get perturbed pose
-                perturbed_pose = self.forward_kinematics(self.dh_params[:frame], thetas_perturbed[:frame])[0] if frame > 0 else np.eye(4)
-                perturbed_pos = perturbed_pose.translation
-                perturbed_rot = perturbed_pose.rotation
+                if frame > 0:
+                    perturbed_pose = self.forward_kinematics(dh_params[:frame], thetas_perturbed[:frame])
+                    perturbed_pos = perturbed_pose[:3,3]
+                    perturbed_rot = perturbed_pose[:3,:3]
+                else:
+                    perturbed_pose = np.eye(4)
+                    perturbed_pos = perturbed_pose[:3,3]
+                    perturbed_rot = perturbed_pose[:3,:3]
                 
                 # Compute position Jacobian (linear velocity component)
                 jacobians[:3,joint,frame] = (perturbed_pos - base_pos) / epsilon
@@ -136,6 +155,7 @@ class Robot:
                     jacobians[3:,joint,frame] = np.zeros(3)
 
         return jacobians
+
     
     def _inverse_kinematics(self, target_pose, seed_joints, dh_params):
         """
@@ -201,7 +221,9 @@ class Robot:
                     return current_joints
             
             # Get Jacobian
-            J = fa.get_jacobian(current_joints)
+            J = self.jacobians(current_joints, dh_params)
+            print(J)
+            print(J.shape)
             
             # Check for singularity
             svd_values = np.linalg.svd(J, compute_uv=False)
