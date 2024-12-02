@@ -7,6 +7,8 @@ from robot_config import RobotConfig
 from task_config import TaskConfig
 from utils import _compute_rotation_error
 
+d = False
+
 class Robot:
     def __init__(self):
         """Initialize motion planner with robot controller"""
@@ -185,7 +187,9 @@ class Robot:
         Returns
         -------
         np.ndarray or None
-            Joint angles that achieve target pose, or None if not found
+            Joint angles tha")
+    # print(joint_trajectory)
+    # print("++++++++++")t achieve target pose, or None if not found
             
         Hints
         -----
@@ -225,7 +229,8 @@ class Robot:
             # Check convergence
             if error_magnitude < convergence_threshold:
                 if fa.is_joints_reachable(current_joints):
-                    print("Converged!")
+                    if d:
+                        print("Converged!")
                     return current_joints
             
             # Get Jacobian
@@ -236,7 +241,8 @@ class Robot:
             # Check for singularity
             svd_values = np.linalg.svd(J, compute_uv=False)
             if np.min(svd_values) < 0.1:
-                print("Near singularity")
+                if d:
+                    print("Near singularity")
                 return None
 
             J_pinv = np.linalg.pinv(J)
@@ -260,11 +266,13 @@ class Robot:
                     RobotConfig.JOINT_LIMITS_MAX
                 )
                 if not fa.is_joints_reachable(new_joints):
-                    print("unreachable new config")
+                    if d:
+                        print("unreachable new config")
                     return None
             
             current_joints = new_joints
         
         # Failed to converge within max iterations
-        print("did not converge within max iter")
+        if d:
+            print("did not converge within max iter")
         return None
