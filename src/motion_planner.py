@@ -186,8 +186,8 @@ class TrajectoryGenerator:
         """
         start_idx = 0
         end_idx = 1
-        print(waypoints)
-        print(len(waypoints))
+        # print(waypoints)
+        # print(len(waypoints))
         while end_idx < len(waypoints):
             '''TODO: not sure if we need to do something different now that we have more points 
             and are interpolating between each pair, I feel like this doesn't really implement the

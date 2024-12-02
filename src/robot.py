@@ -40,7 +40,7 @@ class Robot:
         
         frames = np.zeros((4, 4, len(dh_parameters)+1))
         frames[:,:,0] = np.eye(4)
-        thetas = np.zeros(7)
+        # thetas = np.zeros(7)
     
         # For each joint
         for i in range(len(dh_parameters)):
@@ -94,6 +94,7 @@ class Robot:
         np.ndarray
             Jacobians
         """
+        
         if thetas.shape != (self.dof,):
             raise ValueError(f'Invalid thetas: Expected shape ({self.dof},), got {thetas.shape}.')
 
@@ -104,7 +105,10 @@ class Robot:
         for frame in range(self.dof + 1):
             # Get base pose for this frame
             if frame > 0:
-                base_pose = self.forward_kinematics(dh_params[:frame], thetas[:frame])
+                # Use your working FK function
+                base_frames = np.zeros((4, 4, len(dh_params)+1))
+                base_frames[:,:,0] = np.eye(4)
+                base_pose = self.forward_kinematics(dh_params, thetas)
                 base_pos = base_pose[:3,3]
                 base_rot = base_pose[:3,:3]
             else:
@@ -120,7 +124,9 @@ class Robot:
                 
                 # Get perturbed pose
                 if frame > 0:
-                    perturbed_pose = self.forward_kinematics(dh_params[:frame], thetas_perturbed[:frame])
+                    perturbed_frames = np.zeros((4, 4, len(dh_params)+1))
+                    perturbed_frames[:,:,0] = np.eye(4)
+                    perturbed_pose = self.forward_kinematics(dh_params, thetas_perturbed)
                     perturbed_pos = perturbed_pose[:3,3]
                     perturbed_rot = perturbed_pose[:3,:3]
                 else:
@@ -137,7 +143,7 @@ class Robot:
                     rot_diff = perturbed_rot @ base_rot.T
                     
                     # Convert to axis-angle representation
-                    angle = np.arccos((np.trace(rot_diff) - 1) / 2)
+                    angle = np.arccos(np.clip((np.trace(rot_diff) - 1) / 2, -1.0, 1.0))
                     
                     if abs(angle) < 1e-6:
                         jacobians[3:,joint,frame] = np.zeros(3)
@@ -156,6 +162,7 @@ class Robot:
                     jacobians[3:,joint,frame] = np.zeros(3)
 
         return jacobians
+
 
     
     def _inverse_kinematics(self, target_pose, seed_joints, dh_params):
@@ -223,12 +230,12 @@ class Robot:
             
             # Get Jacobian
             J = self.jacobians(current_joints, dh_params)
-            print(J)
-            print(J.shape)
+            # print(J)
+            # print(J.shape)
             
             # Check for singularity
             svd_values = np.linalg.svd(J, compute_uv=False)
-            if np.min(svd_values) < 0.001:
+            if np.min(svd_values) < 0.1:
                 print("Near singularity")
                 return None
 
@@ -238,8 +245,8 @@ class Robot:
             delta_q = J_pinv @ error
             
             # Limit step size
-            # if np.linalg.norm(delta_q) > step_size:
-            #     delta_q = step_size * delta_q / np.linalg.norm(delta_q) 
+            if np.linalg.norm(delta_q) > step_size:
+                delta_q = step_size * delta_q / np.linalg.norm(delta_q) 
             # '''TODO: you can, but you don't need to check step_size inside IK'''
             
             # Update joints
