@@ -196,7 +196,7 @@ class TrajectoryGenerator:
             pair of points instead of just a start and end point. but also
             even if this is right the number of points might also need to be tweaked. maybe like a function
             that depending on the distance between the start and end point determines the number of points'''
-            num_points = 300
+            num_points = 1000
             trajectory = []
             for i in range(num_points):
                 t = i/num_points
