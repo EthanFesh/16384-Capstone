@@ -229,7 +229,7 @@ class Robot:
                     return current_joints
             
             # Get Jacobian
-            J = self.jacobians(current_joints, dh_params)
+            J = fa.get_jacobian(current_joints)
             # print(J)
             # print(J.shape)
             

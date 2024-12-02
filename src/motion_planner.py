@@ -15,6 +15,7 @@ from utils import _slerp, _rotation_to_quaternion, _quaternion_to_rotation
 from robot import Robot
 import rospy
 
+# Can choose to add another transform here to goto the center of grip
 dh_parameters = np.array([
     [0, 0, 0.333, None],         # Joint 1
     [0, -np.pi/2, 0, None],      # Joint 2
