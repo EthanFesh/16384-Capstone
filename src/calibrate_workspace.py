@@ -5,7 +5,7 @@ from autolab_core import RigidTransform
 class WorkspaceCalibrator:
     def __init__(self):
         self.fa = FrankaArm()
-        self.duration = 15
+        self.duration = 7
         
     def calibrate_pen_holders(self):
         """Calibrate pen holder positions through guided movement"""
@@ -13,19 +13,43 @@ class WorkspaceCalibrator:
         print("Moving to home position...")
         self.fa.reset_joints()
         self.fa.open_gripper()
-        self.fa.close_gripper()
+        # self.fa.close_gripper()
         
-
-        input(f"Press Enter to calibrate pen holder")
+        # Calibrating pen 1 (pink)
+        input(f"Press Enter to calibrate pen 1 (pink)")
         print(f"Move robot above a pen, the position will be printed out after {self.duration} seconds")
         self.fa.run_guide_mode(duration=self.duration)  # Allow manual positioning
         
         # Record position
         current_pose = self.fa.get_pose()
-        print(f"Recorded pen holder at: {current_pose.translation}")
+        print(f"Recorded pen 1 at: {current_pose.translation}")
         # print(type(current_pose.translation))
         # print(current_pose.translation.shape)
-        np.save("pen_holder_pose.npy", current_pose.translation)
+        np.save("pink_pen_pose.npy", current_pose.translation)
+
+        # Calibrating pen 2 (indigo)
+        input(f"Press Enter to calibrate pen 2 (indigo)")
+        print(f"Move robot above a pen, the position will be printed out after {self.duration} seconds")
+        self.fa.run_guide_mode(duration=self.duration)  # Allow manual positioning
+        
+        # Record position
+        current_pose = self.fa.get_pose()
+        print(f"Recorded pen 2 at: {current_pose.translation}")
+        # print(type(current_pose.translation))
+        # print(current_pose.translation.shape)
+        np.save("indigo_pen_pose.npy", current_pose.translation)
+
+        # Calibrating pen 3 (green)
+        input(f"Press Enter to calibrate pen 3 (green)")
+        print(f"Move robot above a pen, the position will be printed out after {self.duration} seconds")
+        self.fa.run_guide_mode(duration=self.duration)  # Allow manual positioning
+        
+        # Record position
+        current_pose = self.fa.get_pose()
+        print(f"Recorded pen 3 at: {current_pose.translation}")
+        # print(type(current_pose.translation))
+        # print(current_pose.translation.shape)
+        np.save("green_pen_pose.npy", current_pose.translation)
         return current_pose
     
     def calibrate_whiteboard(self):

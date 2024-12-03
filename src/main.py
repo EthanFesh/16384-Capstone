@@ -76,10 +76,9 @@ def go(end_pose):
 
 # read the pen holder position from pen_holder_pose.npy
 pen_rot = fa.get_pose().rotation
-pink_pen_xyz = np.load("pen_holder_pose.npy", allow_pickle=True)
-'''TODO: update the displacement with the actual values'''
-indigo_pen_xyz = pink_pen_xyz + np.array([0, 0, 0.1])
-green_pen_xyz = pink_pen_xyz + np.array([0, 0, 0.2])
+pink_pen_xyz = np.load("pink_pen_pose.npy", allow_pickle=True)
+indigo_pen_xyz = np.load("indigo_pen_pose.npy", allow_pickle=True)
+green_pen_xyz = np.load("green_pen_pose.npy", allow_pickle=True)
 
 # Define pen poses (4x4 matrices)
 pink_pen_pose = np.eye(4)
@@ -140,17 +139,6 @@ while (True):
             go(green_pen_pose)
         else:
             print('Invalid input')
-        response = input("Press 'l' to lower arm: ")
-        if (response == 'l'):
-            current_xyz = fa.get_pose().translation
-            '''TODO: update the displacement with the actual value'''
-            current_xyz[2] -= 0.1
-            lowered_pose = np.eye(4)
-            lowered_pose[:3, :3] = pen_rot
-            lowered_pose[:3, 3] = current_xyz
-            go(lowered_pose)
-        else:
-            continue
         response = input("Press 'g' to grab pen: ")
         if (response == 'g'):
             fa.close_gripper()
@@ -160,7 +148,7 @@ while (True):
         if (response == 'r'):
             current_xyz = fa.get_pose().translation
             '''TODO: update the displacement with the actual value'''
-            current_xyz[2] += 0.1
+            current_xyz[2] += 0.3
             raised_pose = np.eye(4)
             raised_pose[:3, :3] = pen_rot
             raised_pose[:3, 3] = current_xyz
