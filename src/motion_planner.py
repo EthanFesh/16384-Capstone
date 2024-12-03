@@ -15,6 +15,8 @@ from utils import _slerp, _rotation_to_quaternion, _quaternion_to_rotation
 from robot import Robot
 import rospy
 
+d = False
+
 # Can choose to add another transform here to goto the center of grip
 dh_parameters = np.array([
     [0, 0, 0.333, None],         # Joint 1
@@ -172,7 +174,16 @@ class TrajectoryGenerator:
 
         Raises
         ------
-        NotImplementedError
+        NotImplementedErr--------i = "+str(i)+"--------")
+                    print("t = " + str(t))
+                    print("Waypoint i:")
+                    print(waypoints[start_idx])
+                    print("Waypoint i+1:")
+                    print(waypoints[end_idx])
+                    print("new pos :")
+                    print(new_pos)
+                    print("Updated trajectory:")
+                    print(tmp_trajectory)or
             This function needs to be implemented.
 
         Hints
@@ -202,26 +213,28 @@ class TrajectoryGenerator:
             pair of points instead of just a start and end point. but also
             even if this is right the number of points might also need to be tweaked. maybe like a function
             that depending on the distance between the start and end point determines the number of points'''
-            num_points = 20
+            num_points = 5
             tmp_trajectory = []
             for i in range(num_points+1):
                 t = i/num_points
                 new_pos = waypoints[start_idx]*(1-t) + waypoints[end_idx]*t
                 new_pos = new_pos.tolist()
                 tmp_trajectory.append(new_pos)
-                print("--------i = "+str(i)+"--------")
-                print("t = " + str(t))
-                print("Waypoint i:")
-                print(waypoints[start_idx])
-                print("Waypoint i+1:")
-                print(waypoints[end_idx])
-                print("new pos :")
-                print(new_pos)
-                print("Updated trajectory:")
-                print(tmp_trajectory)
+                if d :
+                    print("--------i = "+str(i)+"--------")
+                    print("t = " + str(t))
+                    print("Waypoint i:")
+                    print(waypoints[start_idx])
+                    print("Waypoint i+1:")
+                    print(waypoints[end_idx])
+                    print("new pos :")
+                    print(new_pos)
+                    print("Updated trajectory:")
+                    print(tmp_trajectory)
             return_trajectory.extend(tmp_trajectory)
-            print("--------ret_traj---------")
-            print(return_trajectory)
+            if d:
+                print("--------ret_traj---------")
+                print(return_trajectory)
             start_idx += 1
             end_idx += 1
         return return_trajectory
@@ -268,9 +281,13 @@ class TrajectoryGenerator:
             # if (i % 10 == 0):
             #     print(i)
         output = []
+        none_counter = 0
         for pose in joint_trajectory:
             if not (pose is None):
                 output.append(pose.tolist())
+            else :
+                none_counter += 1
+                print(none_counter)
         return output
 
 class TrajectoryFollower:

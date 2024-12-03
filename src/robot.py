@@ -187,9 +187,7 @@ class Robot:
         Returns
         -------
         np.ndarray or None
-            Joint angles tha")
-    # print(joint_trajectory)
-    # print("++++++++++")t achieve target pose, or None if not found
+            Joint angles that achieve target pose, or None if not found
             
         Hints
         -----
@@ -218,6 +216,9 @@ class Robot:
         for iteration in range(max_iters):
             # Get current pose
             current_pose = self.forward_kinematics(dh_params, current_joints)
+            # print(current_pose)
+            # print(type(current_pose))
+            # input("hanging")
             
             # Compute errors
             position_error = target_pose[:3,3] - current_pose[:3,3]

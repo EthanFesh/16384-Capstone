@@ -8,7 +8,20 @@ import sys
 from frankapy import FrankaArm
 from frankapy import FrankaConstants as FC
 import numpy as np
+from robot import Robot
 from motion_planner import TrajectoryFollower, TrajectoryGenerator
+
+# Can choose to add another transform here to goto the center of grip
+dh_parameters = np.array([
+    [0, 0, 0.333, None],         # Joint 1
+    [0, -np.pi/2, 0, None],      # Joint 2
+    [0, np.pi/2, 0.316, None],   # Joint 3
+    [0.0825, np.pi/2, 0, None],  # Joint 4
+    [-0.0825, -np.pi/2, 0.384, None], # Joint 5
+    [0, np.pi/2, 0, None],       # Joint 6
+    [0.088, np.pi/2, 0, None],   # Joint 7
+    [0, 0, 0.107, 0]            # Flange
+])
 
 # Define default values
 parser = argparse.ArgumentParser()
@@ -33,7 +46,7 @@ print('Starting robot')
 fa = FrankaArm()
 fa.open_gripper()
 fa.reset_joints()
-
+robot = Robot()
 
 # Wrapper function that generates and follows trajectories to a desired pose
 def go(end_pose):
@@ -42,19 +55,22 @@ def go(end_pose):
     Following from a piazza post that says the get_pose function will not work as we
     want, here instead of using get_pose we should consider usig our own FK function
     like so: current_pose = self.forward_kinematics(dh_params, current_joints) '''
-    current_pose[:3, :3] = fa.get_pose().rotation
-    current_pose[:3, 3] = fa.get_pose().translation
+    current_pose = robot.forward_kinematics(dh_parameters, fa.get_joints())
+    # current_pose[:3, :3] = fa.get_pose().rotation
+    # current_pose[:3, 3] = fa.get_pose().translation
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
     # print("++++++++++")
     # print(cartesian_trajectory)
     # print("++++++++++")
     joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
-    print("------------Pre interp trajectory----------")
-    print(joint_trajectory)
+    # print("------------Pre interp trajectory----------")
+    # print(joint_trajectory)
     joint_trajectory = np.array(joint_trajectory)
     interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
     print("------------Post interp trajectory----------")
-    print(interp_trajectory)
+    print(len(interp_trajectory))
+    # print(interp_trajectory)
+    input("Press enter to begin motion")
     TF.follow_joint_trajectory(interp_trajectory)
 
 # read the pen holder position from pen_holder_pose.npy

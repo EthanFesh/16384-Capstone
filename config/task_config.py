@@ -12,7 +12,7 @@ class TaskConfig:
     FORCE_VIOLATION_THRESHOLD = 3
     
     # Motion planning parameters
-    PATH_RESOLUTION = 0.001  # meters
+    PATH_RESOLUTION = 0.01  # meters
     IK_MAX_ITERATIONS = 1000
     IK_TOLERANCE = 1e-3
     
