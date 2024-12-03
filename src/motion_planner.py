@@ -15,7 +15,7 @@ from utils import _slerp, _rotation_to_quaternion, _quaternion_to_rotation
 from robot import Robot
 import rospy
 
-d = True
+d = False
 
 # Can choose to add another transform here to goto the center of grip
 dh_parameters = np.array([
@@ -67,10 +67,11 @@ class TrajectoryGenerator:
         p_1 = end_pose[:3, :3]
         p_0 = _rotation_to_quaternion(p_0)
         p_1 = _rotation_to_quaternion(p_1)
-        num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)
+        # print(np.linalg.norm(d_1-d_0))
+        num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)+1
         print("Num points:")
         print(num_points)
-        input("Press enter to continue")
+        # input("Press enter to continue")
         cartesian_trajectory = []
         for i in range(num_points):
             t = i / num_points
@@ -106,7 +107,7 @@ class TrajectoryGenerator:
         Hints
         -----
         - Need list of points defining the curve
-        - Can break curve into segments and use linear interpolation for each
+        - Can break curve into segments            print(len(traj)) and use linear interpolation for each
         - Each waypoint is a 4x4 transformation matrix
         - Keep orientation aligned with curve direction
         - PATH_RESOLUTION from TaskConfig helps determine point spacing
@@ -119,7 +120,8 @@ class TrajectoryGenerator:
         '''TODO: currently i'm assuming the poses passed in have the right spacing for smooth motion, and
         we can ensure that in main when we generate the poses, but feel free to add stuff here as needed'''
         while end_idx < len(poses):
-            traj = self.generate_straight_line(poses[start_idx], poses[end_idx]).tolist()
+            traj = self.generate_straight_line(poses[start_idx], poses[end_idx])
+            traj = traj.tolist()
             cartesian_trajectory.extend(traj)
             start_idx += 1
             end_idx += 1
@@ -159,120 +161,79 @@ class TrajectoryGenerator:
         """
         raise NotImplementedError("Implement interpolate_cartesian_trajectory")
 
-    # def interpolate_joint_trajectory(self, waypoints):
-    #     """
-
-    #     Time-parameterize joint trajectory with trapezoidal velocity profile.
-
-    #     Parameters
-    #     ----------
-    #     waypoints : array_like 
-    #         Joint space array of configurations
-
-    #     Returns
-    #     -------
-    #     array_like
-    #         Time-parameterized trajectory with 20ms spacing
-
-    #     Raises
-    #     ------
-    #     NotImplementedError
-    #         This function needs to be implemented.
-
-    #     Hints
-    #     -----
-    #     Key Requirements:
-    #     - Timing: Waypoints must be spaced exactly 20ms apart for controller
-    #     - Safety: Stay within MAX_VELOCITY and MAX_ACCELERATION limits 
-    #     - Smoothness: Use trapezoidal velocity profile for acceleration/deceleration
-
-    #     Implementation:
-    #     - Use max velocity and acceleration from RobotConfig
-    #     - Ensure smooth acceleration and deceleration
-    #     - Keep 20ms between waypoints as required by controller
-
-    #     """
-    #     start_idx = 0
-    #     end_idx = 1
-    #     print("----------Recieved trajectory----------")
-    #     print(len(waypoints))
-    #     print(waypoints)
-    #     return_trajectory = []
-        
-    #     while end_idx < len(waypoints):
-    #         '''TODO: not sure if we need to do something different now that we have more points 
-    #         and are interpolating between each pair, I feel like this doesn't really implement the
-    #         trapezoidal velocity, it's the same as what we did for the checkpoint but just between each
-    #         pair of points instead of just a start and end point. but also
-    #         even if this is right the number of points might also need to be tweaked. maybe like a function
-    #         that depending on the distance between the start and end point determines the number of points'''
-    #         num_points = 5
-    #         tmp_trajectory = []
-    #         for i in range(num_points+1):
-    #             t = i/num_points
-    #             new_pos = waypoints[start_idx]*(1-t) + waypoints[end_idx]*t
-    #             new_pos = new_pos.tolist()
-    #             tmp_trajectory.append(new_pos)
-    #             if d :
-    #                 print("--------i = "+str(i)+"--------")
-    #                 print("t = " + str(t))
-    #                 print("Waypoint i:")
-    #                 print(waypoints[start_idx])
-    #                 print("Waypoint i+1:")
-    #                 print(waypoints[end_idx])
-    #                 print("new pos :")
-    #                 print(new_pos)
-    #                 print("Updated trajectory:")
-    #                 print(tmp_trajectory)
-    #         return_trajectory.extend(tmp_trajectory)
-    #         if d:
-    #             print("--------ret_traj---------")
-    #             print(return_trajectory)
-    #         start_idx += 1
-    #         end_idx += 1
-    #     return return_trajectory
-
     def interpolate_joint_trajectory(self, waypoints):
-        interpolated_trajectory = []
+        """
+
+        Time-parameterize joint trajectory with trapezoidal velocity profile.
+
+        Parameters
+        ----------
+        waypoints : array_like 
+            Joint space array of configurations
+
+        Returns
+        -------
+        array_like
+            Time-parameterized trajectory with 20ms spacing
+
+        Raises
+        ------
+        NotImplementedError
+            This function needs to be implemented.
+
+        Hints
+        -----
+        Key Requirements:
+        - Timing: Waypoints must be spaced exactly 20ms apart for controller
+        - Safety: Stay within MAX_VELOCITY and MAX_ACCELERATION limits 
+        - Smoothness: Use trapezoidal velocity profile for acceleration/deceleration
+
+        Implementation:
+        - Use max velocity and acceleration from RobotConfig
+        - Ensure smooth acceleration and deceleration
+        - Keep 20ms between waypoints as required by controller
+
+        """
+        start_idx = 0
+        end_idx = 1
+        # print("----------Recieved trajectory----------")
+        # print(len(waypoints))
+        # print(waypoints)
+        return_trajectory = []
         
-        for i in range(len(waypoints) - 1):
-            start_config = np.array(waypoints[i])
-            end_config = np.array(waypoints[i+1])
-            
-            # Calculate distance for each joint
-            distance = end_config - start_config
-            
-            # Calculate total time based on the joint that needs to move the most
-            max_distance = np.max(np.abs(distance))
-            total_time = max_distance / self.max_vel
-            
-            # Calculate acceleration and deceleration times
-            accel_time = self.max_vel / self.max_acc
-            if accel_time > total_time / 3:
-                accel_time = total_time / 3
-            decel_time = accel_time
-            
-            # Calculate constant velocity time
-            const_vel_time = total_time - accel_time - decel_time
-            
-            # Generate trajectory points
-            num_points = int(total_time / self.dt)
-            for t in np.linspace(0, total_time, num_points):
-                if t < accel_time:
-                    # Acceleration phase
-                    s = 0.5 * self.max_acc * t**2
-                elif t < accel_time + const_vel_time:
-                    # Constant velocity phase
-                    s = self.max_vel * (t - accel_time / 2)
-                else:
-                    # Deceleration phase
-                    s = self.max_vel * (total_time - t - decel_time / 2)
-                
-                # Calculate joint positions at this time step
-                config = start_config + s * distance / max_distance
-                interpolated_trajectory.append(config.tolist())
-        
-        return interpolated_trajectory
+        while end_idx < len(waypoints):
+            '''TODO: not sure if we need to do something different now that we have more points 
+            and are interpolating between each pair, I feel like this doesn't really implement the
+            trapezoidal velocity, it's the same as what we did for the checkpoint but just between each
+            pair of points instead of just a start and end point. but also
+            even if this is right the number of points might also need to be tweaked. maybe like a function
+            that depending on the distance between the start and end point determines the number of points'''
+            num_points = 5
+            tmp_trajectory = []
+            for i in range(num_points+1):
+                t = i/num_points
+                new_pos = waypoints[start_idx]*(1-t) + waypoints[end_idx]*t
+                new_pos = new_pos.tolist()
+                tmp_trajectory.append(new_pos)
+                if d :
+                    print("--------i = "+str(i)+"--------")
+                    print("t = " + str(t))
+                    print("Waypoint i:")
+                    print(waypoints[start_idx])
+                    print("Waypoint i+1:")
+                    print(waypoints[end_idx])
+                    print("new pos :")
+                    print(new_pos)
+                    print("Updated trajectory:")
+                    print(tmp_trajectory)
+            return_trajectory.extend(tmp_trajectory)
+            if d:
+                print("--------ret_traj---------")
+                print(return_trajectory)
+            start_idx += 1
+            end_idx += 1
+        print("return trajectory length", len(return_trajectory))
+        return return_trajectory
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """
@@ -322,7 +283,7 @@ class TrajectoryGenerator:
                 output.append(pose.tolist())
             else :
                 none_counter += 1
-                print(none_counter)
+                print("none-counter:", none_counter)
         return output
 
 class TrajectoryFollower:
@@ -347,29 +308,30 @@ class TrajectoryFollower:
 
         rospy.loginfo('Publishing joints trajectory...')
         # To ensure skill doesn't end before completing trajectory, make the buffer time much longer than needed
-        self.fa.goto_joints(joint_trajectory[0], duration=1000, dynamic=True, buffer_time=10)
-        init_time = rospy.Time.now().to_time()
-        for i in range(1, len(joint_trajectory)):
-            traj_gen_proto_msg = JointPositionSensorMessage(
-                id=i, timestamp=rospy.Time.now().to_time() - init_time, 
-                joints=joint_trajectory[i]
-            )
-            ros_msg = make_sensor_group_msg(
-                trajectory_generator_sensor_msg=sensor_proto2ros_msg(
-                    traj_gen_proto_msg, SensorDataMessageType.JOINT_POSITION)
-            )
-            
-            rospy.loginfo('Publishing: ID {}'.format(traj_gen_proto_msg.id))
-            pub.publish(ros_msg)
-            rate.sleep()
+        if (len(joint_trajectory) > 0):
+            self.fa.goto_joints(joint_trajectory[0], duration=1000, dynamic=True, buffer_time=10)
+            init_time = rospy.Time.now().to_time()
+            for i in range(1, len(joint_trajectory)):
+                traj_gen_proto_msg = JointPositionSensorMessage(
+                    id=i, timestamp=rospy.Time.now().to_time() - init_time, 
+                    joints=joint_trajectory[i]
+                )
+                ros_msg = make_sensor_group_msg(
+                    trajectory_generator_sensor_msg=sensor_proto2ros_msg(
+                        traj_gen_proto_msg, SensorDataMessageType.JOINT_POSITION)
+                )
+                
+                rospy.loginfo('Publishing: ID {}'.format(traj_gen_proto_msg.id))
+                pub.publish(ros_msg)
+                rate.sleep()
 
-        # Stop the skill
-        # Alternatively can call fa.stop_skill()
-        term_proto_msg = ShouldTerminateSensorMessage(timestamp=rospy.Time.now().to_time() - init_time, should_terminate=True)
-        ros_msg = make_sensor_group_msg(
-            termination_handler_sensor_msg=sensor_proto2ros_msg(
-                term_proto_msg, SensorDataMessageType.SHOULD_TERMINATE)
-            )
-        pub.publish(ros_msg)
+            # Stop the skill
+            # Alternatively can call fa.stop_skill()
+            term_proto_msg = ShouldTerminateSensorMessage(timestamp=rospy.Time.now().to_time() - init_time, should_terminate=True)
+            ros_msg = make_sensor_group_msg(
+                termination_handler_sensor_msg=sensor_proto2ros_msg(
+                    term_proto_msg, SensorDataMessageType.SHOULD_TERMINATE)
+                )
+            pub.publish(ros_msg)
 
         rospy.loginfo('Done')
