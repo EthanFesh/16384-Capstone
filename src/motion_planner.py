@@ -159,87 +159,120 @@ class TrajectoryGenerator:
         """
         raise NotImplementedError("Implement interpolate_cartesian_trajectory")
 
-    def interpolate_joint_trajectory(self, waypoints):
-        """
+    # def interpolate_joint_trajectory(self, waypoints):
+    #     """
 
-        Time-parameterize joint trajectory with trapezoidal velocity profile.
+    #     Time-parameterize joint trajectory with trapezoidal velocity profile.
 
-        Parameters
-        ----------
-        waypoints : array_like 
-            Joint space array of configurations
+    #     Parameters
+    #     ----------
+    #     waypoints : array_like 
+    #         Joint space array of configurations
 
-        Returns
-        -------
-        array_like
-            Time-parameterized trajectory with 20ms spacing
+    #     Returns
+    #     -------
+    #     array_like
+    #         Time-parameterized trajectory with 20ms spacing
 
-        Raises
-        ------
-        NotImplementedErr--------i = "+str(i)+"--------")
-                    print("t = " + str(t))
-                    print("Waypoint i:")
-                    print(waypoints[start_idx])
-                    print("Waypoint i+1:")
-                    print(waypoints[end_idx])
-                    print("new pos :")
-                    print(new_pos)
-                    print("Updated trajectory:")
-                    print(tmp_trajectory)or
-            This function needs to be implemented.
+    #     Raises
+    #     ------
+    #     NotImplementedError
+    #         This function needs to be implemented.
 
-        Hints
-        -----
-        Key Requirements:
-        - Timing: Waypoints must be spaced exactly 20ms apart for controller
-        - Safety: Stay within MAX_VELOCITY and MAX_ACCELERATION limits 
-        - Smoothness: Use trapezoidal velocity profile for acceleration/deceleration
+    #     Hints
+    #     -----
+    #     Key Requirements:
+    #     - Timing: Waypoints must be spaced exactly 20ms apart for controller
+    #     - Safety: Stay within MAX_VELOCITY and MAX_ACCELERATION limits 
+    #     - Smoothness: Use trapezoidal velocity profile for acceleration/deceleration
 
-        Implementation:
-        - Use max velocity and acceleration from RobotConfig
-        - Ensure smooth acceleration and deceleration
-        - Keep 20ms between waypoints as required by controller
+    #     Implementation:
+    #     - Use max velocity and acceleration from RobotConfig
+    #     - Ensure smooth acceleration and deceleration
+    #     - Keep 20ms between waypoints as required by controller
 
-        """
-        start_idx = 0
-        end_idx = 1
-        print("----------Recieved trajectory----------")
-        print(len(waypoints))
-        print(waypoints)
-        return_trajectory = []
+    #     """
+    #     start_idx = 0
+    #     end_idx = 1
+    #     print("----------Recieved trajectory----------")
+    #     print(len(waypoints))
+    #     print(waypoints)
+    #     return_trajectory = []
         
-        while end_idx < len(waypoints):
-            '''TODO: not sure if we need to do something different now that we have more points 
-            and are interpolating between each pair, I feel like this doesn't really implement the
-            trapezoidal velocity, it's the same as what we did for the checkpoint but just between each
-            pair of points instead of just a start and end point. but also
-            even if this is right the number of points might also need to be tweaked. maybe like a function
-            that depending on the distance between the start and end point determines the number of points'''
-            num_points = 5
-            tmp_trajectory = []
-            for i in range(num_points+1):
-                t = i/num_points
-                new_pos = waypoints[start_idx]*(1-t) + waypoints[end_idx]*t
-                new_pos = new_pos.tolist()
-                tmp_trajectory.append(new_pos)
-                if d :
-                    print("--------i = "+str(i)+"--------")
-                    print("t = " + str(t))
-                    print("Waypoint i:")
-                    print(waypoints[start_idx])
-                    print("Waypoint i+1:")
-                    print(waypoints[end_idx])
-                    print("new pos :")
-                    print(new_pos)
-                    print("Updated trajectory:")
-                    print(tmp_trajectory)
-            return_trajectory.extend(tmp_trajectory)
-            if d:
-                print("--------ret_traj---------")
-                print(return_trajectory)
-            start_idx += 1
-            end_idx += 1
-        return return_trajectory
+    #     while end_idx < len(waypoints):
+    #         '''TODO: not sure if we need to do something different now that we have more points 
+    #         and are interpolating between each pair, I feel like this doesn't really implement the
+    #         trapezoidal velocity, it's the same as what we did for the checkpoint but just between each
+    #         pair of points instead of just a start and end point. but also
+    #         even if this is right the number of points might also need to be tweaked. maybe like a function
+    #         that depending on the distance between the start and end point determines the number of points'''
+    #         num_points = 5
+    #         tmp_trajectory = []
+    #         for i in range(num_points+1):
+    #             t = i/num_points
+    #             new_pos = waypoints[start_idx]*(1-t) + waypoints[end_idx]*t
+    #             new_pos = new_pos.tolist()
+    #             tmp_trajectory.append(new_pos)
+    #             if d :
+    #                 print("--------i = "+str(i)+"--------")
+    #                 print("t = " + str(t))
+    #                 print("Waypoint i:")
+    #                 print(waypoints[start_idx])
+    #                 print("Waypoint i+1:")
+    #                 print(waypoints[end_idx])
+    #                 print("new pos :")
+    #                 print(new_pos)
+    #                 print("Updated trajectory:")
+    #                 print(tmp_trajectory)
+    #         return_trajectory.extend(tmp_trajectory)
+    #         if d:
+    #             print("--------ret_traj---------")
+    #             print(return_trajectory)
+    #         start_idx += 1
+    #         end_idx += 1
+    #     return return_trajectory
+
+    def interpolate_joint_trajectory(self, waypoints):
+        interpolated_trajectory = []
+        
+        for i in range(len(waypoints) - 1):
+            start_config = np.array(waypoints[i])
+            end_config = np.array(waypoints[i+1])
+            
+            # Calculate distance for each joint
+            distance = end_config - start_config
+            
+            # Calculate total time based on the joint that needs to move the most
+            max_distance = np.max(np.abs(distance))
+            total_time = max_distance / self.max_vel
+            
+            # Calculate acceleration and deceleration times
+            accel_time = self.max_vel / self.max_acc
+            if accel_time > total_time / 3:
+                accel_time = total_time / 3
+            decel_time = accel_time
+            
+            # Calculate constant velocity time
+            const_vel_time = total_time - accel_time - decel_time
+            
+            # Generate trajectory points
+            num_points = int(total_time / self.dt)
+            for t in np.linspace(0, total_time, num_points):
+                if t < accel_time:
+                    # Acceleration phase
+                    s = 0.5 * self.max_acc * t**2
+                elif t < accel_time + const_vel_time:
+                    # Constant velocity phase
+                    s = self.max_vel * (t - accel_time / 2)
+                else:
+                    # Deceleration phase
+                    s = self.max_vel * (total_time - t - decel_time / 2)
+                
+                # Calculate joint positions at this time step
+                config = start_config + s * distance / max_distance
+                interpolated_trajectory.append(config.tolist())
+        
+        return interpolated_trajectory
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """
