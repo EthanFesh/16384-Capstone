@@ -100,24 +100,26 @@ whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
 line_1_start_pose = whiteboard_pose
 line_1_end_pose = np.eye(4)
 line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([0.1, 0, 0])
+line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([0.3, 0, 0])
 
-# circle_start_pose = line_1_end_pose
-# circle_xyzs = []
-# '''TODO: generate points in the circle'''
-# circle_poses = []
-# for circle_xyz in circle_xyzs:
-#     circle_pose = np.eye(4)
-#     circle_pose[:3, :3] = whiteboard_pose[:3, :3]
-#     circle_pose[:3, 3] = circle_xyz
-#     circle_poses.append(circle_pose)
+circle_start_pose = line_1_end_pose
+circle_xyzs = []
+'''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
+for i in range(32):
+    circle_xyzs.append(circle_start_pose[:3, 3] + np.array([0.1*np.cos(i*2*np.pi/32), 0.1*np.sin(i*2*np.pi/32), 0]))
+circle_poses = []
+for circle_xyz in circle_xyzs:
+    circle_pose = np.eye(4)
+    circle_pose[:3, :3] = whiteboard_pose[:3, :3]
+    circle_pose[:3, 3] = circle_xyz
+    circle_poses.append(circle_pose)
 
-# '''TODO: update the displacement with the actual value'''
-# print(len(circle_poses))
-# line_2_start_pose = circle_poses[(len(circle_poses)-1)]
-# line_2_end_pose = np.eye(4)
-# line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-# line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([0.1, 0, 0])
+'''TODO: update the displacement with the actual value'''
+print(len(circle_poses))
+line_2_start_pose = circle_poses[(len(circle_poses)-1)]
+line_2_end_pose = np.eye(4)
+line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
+line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([0.1, 0, 0])
 
 # Define drop bin pose (4x4 matrix)
 drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)

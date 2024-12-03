@@ -5,7 +5,7 @@ from autolab_core import RigidTransform
 class WorkspaceCalibrator:
     def __init__(self):
         self.fa = FrankaArm()
-        self.duration = 7
+        self.duration = 12
         
     def calibrate_pen_holders(self):
         """Calibrate pen holder positions through guided movement"""
