@@ -20,7 +20,8 @@ dh_parameters = np.array([
     [-0.0825, -np.pi/2, 0.384, None], # Joint 5
     [0, np.pi/2, 0, None],       # Joint 6
     [0.088, np.pi/2, 0, None],   # Joint 7
-    [0, 0, 0.107, 0]            # Flange
+    [0, 0, 0.107, -np.pi/4],            # Flange
+    [0, 0, 0.1034, 0] # Center of grip
 ])
 
 # Define default values

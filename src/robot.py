@@ -78,7 +78,7 @@ class Robot:
         #     print(i)
         #     print(frames[:,:,i])
         #     print("-----")
-        '''TODO: Add a final transformation from the flange to the center of grip or tip of pen'''
+        
         # Return final transformation (end-effector pose)
         return frames[:,:,-1]
     

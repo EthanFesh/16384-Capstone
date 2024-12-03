@@ -15,7 +15,7 @@ from utils import _slerp, _rotation_to_quaternion, _quaternion_to_rotation
 from robot import Robot
 import rospy
 
-d = False
+d = True
 
 # Can choose to add another transform here to goto the center of grip
 dh_parameters = np.array([
@@ -26,7 +26,8 @@ dh_parameters = np.array([
     [-0.0825, -np.pi/2, 0.384, None], # Joint 5
     [0, np.pi/2, 0, None],       # Joint 6
     [0.088, np.pi/2, 0, None],   # Joint 7
-    [0, 0, 0.107, 0]            # Flange
+    [0, 0, 0.107, -np.pi/4],     # Flange
+    [0, 0, 0.1034, 0]            # Center of grip
 ])
 
 class TrajectoryGenerator:
@@ -54,7 +55,7 @@ class TrajectoryGenerator:
 
         Hints
         -----
-        - Need start pose (4x4 matrix) and end pose (4x4 matrix)
+        - Need start pose (4x4 matrix) an0, 0.1034, 0, 0]d end pose (4x4 matrix)
         - Use linear interpolation for position: p(t) = p0 + t*(p1-p0)
         - Use SLERP (spherical linear interpolation) for rotation
         - Number of points should give enough resolution for smooth motion
@@ -160,6 +161,7 @@ class TrajectoryGenerator:
 
     def interpolate_joint_trajectory(self, waypoints):
         """
+
         Time-parameterize joint trajectory with trapezoidal velocity profile.
 
         Parameters
@@ -209,7 +211,7 @@ class TrajectoryGenerator:
         while end_idx < len(waypoints):
             '''TODO: not sure if we need to do something different now that we have more points 
             and are interpolating between each pair, I feel like this doesn't really implement the
-            trapezoidal velocity, it's the same as what we did for the capstone but just between each
+            trapezoidal velocity, it's the same as what we did for the checkpoint but just between each
             pair of points instead of just a start and end point. but also
             even if this is right the number of points might also need to be tweaked. maybe like a function
             that depending on the distance between the start and end point determines the number of points'''
