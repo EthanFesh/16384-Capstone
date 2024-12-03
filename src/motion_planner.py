@@ -65,6 +65,9 @@ class TrajectoryGenerator:
         p_0 = _rotation_to_quaternion(p_0)
         p_1 = _rotation_to_quaternion(p_1)
         num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)
+        print("Num points:")
+        print(num_points)
+        input("Press enter to continue")
         cartesian_trajectory = []
         for i in range(num_points):
             t = i / num_points
@@ -187,8 +190,11 @@ class TrajectoryGenerator:
         """
         start_idx = 0
         end_idx = 1
-        # print(waypoints)
-        # print(len(waypoints))
+        print("----------Recieved trajectory----------")
+        print(len(waypoints))
+        print(waypoints)
+        return_trajectory = []
+        
         while end_idx < len(waypoints):
             '''TODO: not sure if we need to do something different now that we have more points 
             and are interpolating between each pair, I feel like this doesn't really implement the
@@ -196,17 +202,29 @@ class TrajectoryGenerator:
             pair of points instead of just a start and end point. but also
             even if this is right the number of points might also need to be tweaked. maybe like a function
             that depending on the distance between the start and end point determines the number of points'''
-            num_points = 300
-            trajectory = []
-            for i in range(num_points):
+            num_points = 20
+            tmp_trajectory = []
+            for i in range(num_points+1):
                 t = i/num_points
                 new_pos = waypoints[start_idx]*(1-t) + waypoints[end_idx]*t
                 new_pos = new_pos.tolist()
-                trajectory.append(new_pos)
-            trajectory = np.array(trajectory)
+                tmp_trajectory.append(new_pos)
+                print("--------i = "+str(i)+"--------")
+                print("t = " + str(t))
+                print("Waypoint i:")
+                print(waypoints[start_idx])
+                print("Waypoint i+1:")
+                print(waypoints[end_idx])
+                print("new pos :")
+                print(new_pos)
+                print("Updated trajectory:")
+                print(tmp_trajectory)
+            return_trajectory.extend(tmp_trajectory)
+            print("--------ret_traj---------")
+            print(return_trajectory)
             start_idx += 1
             end_idx += 1
-        return trajectory
+        return return_trajectory
     
     def convert_cartesian_to_joint(self, cartesian_trajectory):
         """

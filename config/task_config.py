@@ -3,7 +3,7 @@ class TaskConfig:
     
     # Drawing parameters
     CIRCLE_SEGMENTS = 32
-    LINE_RESOLUTION = 0.001  # meters between points
+    LINE_RESOLUTION = 0.01  # meters between points
     CURVE_INTERPOLATION_POINTS = 100
     
     # Recovery parameters
@@ -12,7 +12,7 @@ class TaskConfig:
     FORCE_VIOLATION_THRESHOLD = 3
     
     # Motion planning parameters
-    PATH_RESOLUTION = 0.01  # meters
+    PATH_RESOLUTION = 0.001  # meters
     IK_MAX_ITERATIONS = 1000
     IK_TOLERANCE = 1e-3
     
