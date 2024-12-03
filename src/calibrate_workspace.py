@@ -97,8 +97,13 @@ class WorkspaceCalibrator:
         print(f"Move robot above the drop bin, the position will be printed out after {self.duration} seconds")
         self.fa.run_guide_mode(duration=self.duration)
         drop_pose = self.fa.get_pose()
-        print(f"Recorded drop bin at: {drop_pose.translation}")
-        np.save("drop_bin_pose.npy", drop_pose.translation)
+        translation = drop_pose.translation
+        rotation = drop_pose.rotation
+        pose = np.eye(4)
+        pose[:3, :3] = rotation
+        pose[:3, 3] = translation
+        print(f"Recorded drop bin at: {pose}")
+        np.save("drop_bin_pose.npy", pose)
         return drop_pose
     
     def _compute_orientation_matrix(self, normal):

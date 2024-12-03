@@ -120,11 +120,7 @@ line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([0.1, 0, 0])
 # line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([0.1, 0, 0])
 
 # Define drop bin pose (4x4 matrix)
-drop_xyz = np.load("drop_bin_pose.npy", allow_pickle=True)
-drop_pose = np.eye(4)
-drop_pose[:3, 3] = drop_xyz
-'''TODO: not sure if the rotation should actually be the same'''
-drop_pose[:3, :3] = pen_rot
+drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)
 
 print('Ready')
 while (True):
