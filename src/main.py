@@ -75,7 +75,7 @@ def go(end_pose):
     TF.follow_joint_trajectory(interp_trajectory)
 
 # read the pen holder position from pen_holder_pose.npy
-pen_rot = fa.get_pose().rotation
+pen_rot = robot.forward_kinematics(dh_parameters, fa.get_joints())[:3, :3]
 pink_pen_xyz = np.load("pink_pen_pose.npy", allow_pickle=True)
 indigo_pen_xyz = np.load("indigo_pen_pose.npy", allow_pickle=True)
 green_pen_xyz = np.load("green_pen_pose.npy", allow_pickle=True)
