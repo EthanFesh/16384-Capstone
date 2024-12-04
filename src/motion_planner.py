@@ -219,7 +219,9 @@ class TrajectoryGenerator:
         start_idx = 0
         end_idx = 1
         # print("----------Recieved trajectory----------")
-        # print(len(waypoints))
+        # print(len(waypoints))t in joint_trajectory:
+                #     pose = robot.forward_kinematics(dh_parameters, joint)
+                #     print(pose)
         # print(waypoints)
         return_trajectory = []
         

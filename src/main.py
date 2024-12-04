@@ -45,8 +45,8 @@ TG = TrajectoryGenerator()
 TF = TrajectoryFollower()
 print('Starting robot')
 fa = FrankaArm()
-# fa.open_gripper()
-# fa.reset_joints()
+fa.open_gripper()
+fa.reset_joints()
 robot = Robot()
 
 # Wrapper function that generates and follows trajectories to a desired pose
@@ -105,9 +105,13 @@ line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([0.1, 0, 0])
 circle_start_pose = line_1_start_pose
 circle_xyzs = []
 '''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
-for i in range(6):
-    print(np.array([0.1*np.cos(i*2*np.pi/32), 0.1*np.sin(i*2*np.pi/32), 0]))
-    circle_xyzs.append(circle_start_pose[:3, 3] + np.array([0.1*np.cos(i*2*np.pi/32), 0.1*np.sin(i*2*np.pi/32), 0]))
+for i in range(128):
+    # print(n/np.pi/32), 0.1*np.sin(i*2*np.pi/32), 0]))
+    point = (np.array([0.1*np.cos(i*2*np.pi/256) - 0.1, 0.1*np.sin(i*2*np.pi/256), 0, 1]))
+    transformed = whiteboard_pose @ point
+    # print(transformed.shape)
+    transformed = transformed[:3]
+    circle_xyzs.append(transformed)
 circle_poses = []
 for circle_xyz in circle_xyzs:
     circle_pose = np.eye(4)
@@ -167,18 +171,26 @@ while (True):
             response = input("Press '1' to start drawing: ")
             if (response == '1'):
                 cartesian_trajectory = TG.generate_curve(circle_poses)
-                for pose in cartesian_trajectory:
-                    print(pose[:3,3])
-                print("poses pre interp")
+                # print("---------Cartesian len-----------")
+                # print(cartesian_trajectory.shape)
+                # for pose in cartesian_trajectory:
+                #     print(pose[:3,3])
+                # print("poses pre interp")
                 cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
                 i = 0
-                for pose in cartesian_trajectory:
-                    if (i % 5 == 0):
-                        print(pose[:3, 3])
-                        input("Press enter to continue")
-                    i = i + 1
-                joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
+                # for pose in cartesian_trajectory:
+                #     if (i % 5 == 0):
+                #         print(pose[:3, 3])
+                #         input("Press enter to continue")
+                #     i = i + 1
+                joint_trajectory = TG.convert_cartesian_to_joint(circle_poses)
+                print("---------Joint space len-----------")
+                print(len(joint_trajectory))
                 joint_trajectory = np.array(joint_trajectory)
+                # for joint in joint_trajectory:
+                #     pose = robot.forward_kinematics(dh_parameters, joint)
+                #     print(pose)
+
                 TF.follow_joint_trajectory(joint_trajectory)
                 break
             else:
@@ -203,5 +215,5 @@ while (True):
         break
     else:
         print('Invalid input')
-#     fa.reset_joints()
-# fa.reset_joints()
+    fa.reset_joints()
+fa.reset_joints()
