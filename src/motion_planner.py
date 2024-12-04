@@ -69,8 +69,8 @@ class TrajectoryGenerator:
         p_1 = _rotation_to_quaternion(p_1)
         # print(np.linalg.norm(d_1-d_0))
         num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)+1
-        print("Num points:")
-        print(num_points)
+        # print("Num points:")
+        # print(num_points)
         # input("Press enter to continue")
         cartesian_trajectory = []
         for i in range(num_points):
@@ -159,7 +159,29 @@ class TrajectoryGenerator:
         - Ensure 20ms spacing between waypoints
         - For rotations: Use SLERP to interpolate between orientations
         """
-        raise NotImplementedError("Implement interpolate_cartesian_trajectory")
+        # print("in interp cartesian")
+        start_idx = 0
+        end_idx = 1
+        return_trajectory = []
+        while end_idx < len(cartesian_trajectory):
+            num_points = 5
+            tmp_trajectory = []
+            for i in range(num_points+1):
+                t = i/num_points
+                new_pos = cartesian_trajectory[start_idx][:3, 3]*(1-t) + cartesian_trajectory[end_idx][:3, 3]*t
+                start_rot_quat = _rotation_to_quaternion(cartesian_trajectory[start_idx][:3, :3])
+                end_rot_quat = _rotation_to_quaternion(cartesian_trajectory[end_idx][:3, :3])
+                new_rot = _slerp(start_rot_quat, end_rot_quat, t)
+                new_rot = _quaternion_to_rotation(new_rot)
+                pose = np.eye(4)
+                pose[:3, :3] = new_rot
+                pose[:3, 3] = new_pos
+                pose.tolist()
+                tmp_trajectory.append(pose)
+            return_trajectory.extend(tmp_trajectory)
+            start_idx += 1
+            end_idx += 1
+        return np.array(return_trajectory)
 
     def interpolate_joint_trajectory(self, waypoints):
         """

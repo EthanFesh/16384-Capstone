@@ -167,9 +167,10 @@ while (True):
             response = input("Press '1' to start drawing: ")
             if (response == '1'):
                 cartesian_trajectory = TG.generate_curve(circle_poses)
+                cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
                 joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
                 joint_trajectory = np.array(joint_trajectory)
-                TF.follow_joint_trajectory(TG.interpolate_joint_trajectory(joint_trajectory))
+                TF.follow_joint_trajectory(joint_trajectory)
                 break
             else:
                 continue
