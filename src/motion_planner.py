@@ -17,7 +17,6 @@ import rospy
 
 d = False
 
-# Can choose to add another transform here to goto the center of grip
 dh_parameters = np.array([
     [0, 0, 0.333, None],         # Joint 1
     [0, -np.pi/2, 0, None],      # Joint 2
@@ -29,6 +28,19 @@ dh_parameters = np.array([
     [0, 0, 0.107, -np.pi/4],     # Flange
     [0, 0, 0.1034, 0]            # Center of grip
 ])
+
+# drawing_dh_parameters = np.array([
+#     [0, 0, 0.333, None],         # Joint 1
+#     [0, -np.pi/2, 0, None],      # Joint 2
+#     [0, np.pi/2, 0.316, None],   # Joint 3
+#     [0.0825, np.pi/2, 0, None],  # Joint 4
+#     [-0.0825, -np.pi/2, 0.384, None], # Joint 5
+#     [0, np.pi/2, 0, None],       # Joint 6
+#     [0.088, np.pi/2, 0, None],   # Joint 7
+#     [0, 0, 0.107, -np.pi/4],     # Flange
+#     [0, 0, 0.1034, 0],            # Center of grip
+#     [0, 0, 0.05, 0],            # End of pen
+# ])
 
 class TrajectoryGenerator:
     def __init__(self, dt=0.02):
@@ -67,11 +79,7 @@ class TrajectoryGenerator:
         p_1 = end_pose[:3, :3]
         p_0 = _rotation_to_quaternion(p_0)
         p_1 = _rotation_to_quaternion(p_1)
-        # print(np.linalg.norm(d_1-d_0))
         num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)+1
-        # print("Num points:")
-        # print(num_points)
-        # input("Press enter to continue")
         cartesian_trajectory = []
         for i in range(num_points):
             t = i / num_points
@@ -218,20 +226,9 @@ class TrajectoryGenerator:
         """
         start_idx = 0
         end_idx = 1
-        # print("----------Recieved trajectory----------")
-        # print(len(waypoints))t in joint_trajectory:
-                #     pose = robot.forward_kinematics(dh_parameters, joint)
-                #     print(pose)
-        # print(waypoints)
         return_trajectory = []
         
         while end_idx < len(waypoints):
-            '''TODO: not sure if we need to do something different now that we have more points 
-            and are interpolating between each pair, I feel like this doesn't really implement the
-            trapezoidal velocity, it's the same as what we did for the checkpoint but just between each
-            pair of points instead of just a start and end point. but also
-            even if this is right the number of points might also need to be tweaked. maybe like a function
-            that depending on the distance between the start and end point determines the number of points'''
             num_points = 5
             tmp_trajectory = []
             for i in range(num_points+1):
@@ -292,14 +289,9 @@ class TrajectoryGenerator:
         print("in cartesian to joint")
         joint_trajectory = []
         robot = Robot()
-        # print(len(cartesian_trajectory))
-        i = 0
         for pose in cartesian_trajectory:
             config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else None, dh_parameters)
             joint_trajectory.append(config)
-            i = i + 1
-            # if (i % 10 == 0):
-            #     print(i)
         output = []
         none_counter = 0
         for pose in joint_trajectory:

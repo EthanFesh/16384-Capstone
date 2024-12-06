@@ -52,26 +52,14 @@ robot = Robot()
 # Wrapper function that generates and follows trajectories to a desired pose
 def go(end_pose):
     current_pose = np.eye(4)
-    ''' TODO:
-    Following from a piazza post that says the get_pose function will not work as we
-    want, here instead of using get_pose we should consider usig our own FK function
-    like so: current_pose = self.forward_kinematics(dh_params, current_joints) '''
     current_pose = robot.forward_kinematics(dh_parameters, fa.get_joints())
-    # current_pose[:3, :3] = fa.get_pose().rotation
-    # current_pose[:3, 3] = fa.get_pose().translation
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
-    # print("++++++++++")
-    # print(cartesian_trajectory)
-    # print("++++++++++")
-    joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
-    # print("------------Pre interp trajectory----------")
-    # print(joint_trajectory)
+    try: 
+        joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
+    except:
+        print('Ik did not converge')
     joint_trajectory = np.array(joint_trajectory)
     interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
-    print("------------Post interp trajectory----------")
-    print(len(interp_trajectory))
-    # print(interp_trajectory)
-    input("Press enter to begin motion")
     TF.follow_joint_trajectory(interp_trajectory)
 
 # read the pen holder position from pen_holder_pose.npy
@@ -100,16 +88,14 @@ whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
 line_1_start_pose = whiteboard_pose
 line_1_end_pose = np.eye(4)
 line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([0.1, 0, 0])
+line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.15, 0, 0])
 
-circle_start_pose = line_1_start_pose
+circle_start_pose = whiteboard_pose
 circle_xyzs = []
 '''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
 for i in range(128):
-    # print(n/np.pi/32), 0.1*np.sin(i*2*np.pi/32), 0]))
-    point = (np.array([0.1*np.cos(i*2*np.pi/256) - 0.1, 0.1*np.sin(i*2*np.pi/256), 0, 1]))
+    point = (np.array([0.15*np.cos(i*2*np.pi/256) - 0.15, 0.15*np.sin(i*2*np.pi/256), 0, 1]))
     transformed = whiteboard_pose @ point
-    # print(transformed.shape)
     transformed = transformed[:3]
     circle_xyzs.append(transformed)
 circle_poses = []
@@ -120,10 +106,10 @@ for circle_xyz in circle_xyzs:
     circle_poses.append(circle_pose)
 
 '''TODO: update the displacement with the actual value'''
-line_2_start_pose = circle_poses[(len(circle_poses)-1)]
+line_2_start_pose = whiteboard_pose
 line_2_end_pose = np.eye(4)
 line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([0.1, 0, 0])
+line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([-0.07, 0.1, 0])
 
 # Define drop bin pose (4x4 matrix)
 drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)
@@ -141,6 +127,20 @@ while (True):
             go(green_pen_pose)
         else:
             print('Invalid input')
+        adjust = True
+        while (adjust):
+            response = input("Press 'a' to adjust gripper position, 'c' to continue: ")
+            if (response == 'a'):
+                response = input("Enter x, y, z: ")
+                xyz = np.array(response.split(), dtype=np.float)
+                goal_pose = np.eye(4)
+                goal_pose[:3, :3] = pen_rot
+                goal_pose[:3, 3] = xyz
+                go(goal_pose)
+            elif (response == 'c'):
+                adjust = False
+            else:
+                print('Invalid input')
         response = input("Press 'g' to grab pen: ")
         if (response == 'g'):
             fa.close_gripper()
@@ -158,54 +158,53 @@ while (True):
         else:
             continue
     elif response == 'w':
+        go(whiteboard_pose)
+        adjust = True
+        while (adjust):
+            response = input("Press 'a' to adjust pen position, 'c' to continue: ")
+            if (response == 'a'):
+                response = input("Enter x, y, z: ")
+                xyz = np.array(response.split(), dtype=np.float)
+                goal_pose = np.eye(4)
+                goal_pose[:3, :3] = whiteboard_pose[:3, :3]
+                goal_pose[:3, 3] = xyz
+                go(goal_pose)
+            elif (response == 'c'):
+                adjust = False
+            else:
+                print('Invalid input')
         response = input("Press '1' for first line, '2' for circle, '3' for second line: ")
         if response == '1':
-            go(line_1_start_pose)
-            response = input("Press '1' to start drawing: ")
-            if (response == '1'):
-                go(line_1_end_pose)
-            else:
-                continue
+            go(line_1_end_pose)
         elif response == '2':
-            go(circle_start_pose)
-            response = input("Press '1' to start drawing: ")
-            if (response == '1'):
-                cartesian_trajectory = TG.generate_curve(circle_poses)
-                # print("---------Cartesian len-----------")
-                # print(cartesian_trajectory.shape)
-                # for pose in cartesian_trajectory:
-                #     print(pose[:3,3])
-                # print("poses pre interp")
-                cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
-                i = 0
-                # for pose in cartesian_trajectory:
-                #     if (i % 5 == 0):
-                #         print(pose[:3, 3])
-                #         input("Press enter to continue")
-                #     i = i + 1
+            # cartesian_trajectory = TG.generate_curve(circle_poses)
+            # cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
+            try: 
                 joint_trajectory = TG.convert_cartesian_to_joint(circle_poses)
-                print("---------Joint space len-----------")
-                print(len(joint_trajectory))
-                joint_trajectory = np.array(joint_trajectory)
-                # for joint in joint_trajectory:
-                #     pose = robot.forward_kinematics(dh_parameters, joint)
-                #     print(pose)
-
-                TF.follow_joint_trajectory(joint_trajectory)
-                break
-            else:
-                continue
+            except:
+                print('Ik did not converge')
+            joint_trajectory = np.array(joint_trajectory)
+            TF.follow_joint_trajectory(joint_trajectory)
         elif response == '3':
-            go(line_2_start_pose)
-            response = input("Press '1' to start drawing: ")
-            if (response == '1'):
-                go(line_2_end_pose)
-            else:
-                continue
+            go(line_2_end_pose)
         else:
             print('Invalid input')
     elif response == 'd':
         go(drop_pose)
+        adjust = True
+        while (adjust):
+            response = input("Press 'a' to adjust drop position, 'c' to continue: ")
+            if (response == 'a'):
+                response = input("Enter x, y, z: ")
+                xyz = np.array(response.split(), dtype=np.float)
+                goal_pose = np.eye(4)
+                goal_pose[:3, :3] = drop_pose[:3, :3]
+                goal_pose[:3, 3] = xyz
+                go(goal_pose)
+            elif (response == 'c'):
+                adjust = False
+            else:
+                print('Invalid input')
         response = input("Press 'r' to release pen: ")
         if (response == 'r'):
             fa.open_gripper()
