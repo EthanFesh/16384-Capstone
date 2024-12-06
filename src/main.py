@@ -56,11 +56,11 @@ def go(end_pose):
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
     try: 
         joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
+        joint_trajectory = np.array(joint_trajectory)
+        interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
+        TF.follow_joint_trajectory(interp_trajectory)
     except:
         print('Ik did not converge')
-    joint_trajectory = np.array(joint_trajectory)
-    interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
-    TF.follow_joint_trajectory(interp_trajectory)
 
 # read the pen holder position from pen_holder_pose.npy
 pen_rot = robot.forward_kinematics(dh_parameters, fa.get_joints())[:3, :3]
@@ -119,11 +119,15 @@ while (True):
     response = input("Press 'p' to pick up a pen, 'w' to write, 'd' to move pen over drop bin, 'q' to quit: ")
     if response == 'p':
         response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen: ")
+        color = ""
         if (response == 'p'):
+            color = "pink"
             go(pink_pen_pose)
         elif (response == 'i'):
+            color = "indigo"
             go(indigo_pen_pose)
         elif (response == 'g'):
+            color = "green"
             go(green_pen_pose)
         else:
             print('Invalid input')
@@ -132,7 +136,14 @@ while (True):
             response = input("Press 'a' to adjust gripper position, 'c' to continue: ")
             if (response == 'a'):
                 response = input("Enter x, y, z: ")
-                xyz = np.array(response.split(), dtype=np.float)
+                xyz_strings = np.array(response.split(" "))
+                xyz = [i.astype(float) for i in xyz_strings]
+                if (color == "pink"):
+                    xyz = xyz + pink_pen_xyz
+                elif (color == "indigo"):
+                    xyz = xyz + indigo_pen_xyz
+                else:
+                    xyz = xyz + green_pen_pose
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = pen_rot
                 goal_pose[:3, 3] = xyz
@@ -164,10 +175,13 @@ while (True):
             response = input("Press 'a' to adjust pen position, 'c' to continue: ")
             if (response == 'a'):
                 response = input("Enter x, y, z: ")
-                xyz = np.array(response.split(), dtype=np.float)
+                xyz_strings = np.array(response.split(" "))
+                xyz = [i.astype(float) for i in xyz_strings]
+                xyz = np.append(xyz, 1.0)
+                transformed = whiteboard_pose @ xyz
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = whiteboard_pose[:3, :3]
-                goal_pose[:3, 3] = xyz
+                goal_pose[:3, 3] = transformed[:3]
                 go(goal_pose)
             elif (response == 'c'):
                 adjust = False
@@ -196,10 +210,13 @@ while (True):
             response = input("Press 'a' to adjust drop position, 'c' to continue: ")
             if (response == 'a'):
                 response = input("Enter x, y, z: ")
-                xyz = np.array(response.split(), dtype=np.float)
+                xyz_strings = np.array(response.split(" "))
+                xyz = [i.astype(float) for i in xyz_strings]
+                xyz = np.append(xyz, 1.0)
+                transformed = drop_pose @ xyz
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = drop_pose[:3, :3]
-                goal_pose[:3, 3] = xyz
+                goal_pose[:3, 3] = transformed[:3]
                 go(goal_pose)
             elif (response == 'c'):
                 adjust = False
