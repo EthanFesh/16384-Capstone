@@ -209,7 +209,7 @@ class Robot:
         # Get iteration parameters
         max_iters = TaskConfig.IK_MAX_ITERATIONS
         convergence_threshold = TaskConfig.IK_TOLERANCE
-        step_size = TaskConfig.PATH_RESOLUTION
+        step_size = TaskConfig.PATH_RESOLUTION * 4
         
         current_joints = seed_joints.copy()
         

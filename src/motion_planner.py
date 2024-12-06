@@ -39,7 +39,7 @@ drawing_dh_parameters = np.array([
     [0.088, np.pi/2, 0, None],   # Joint 7
     [0, 0, 0.107, -np.pi/4],     # Flange
     [0, 0, 0.1034, 0],            # Center of grip
-    [0, 0, 0.03, 0],            # End of pen
+    [0, 0, 0.05, 0]            # End of pen
 ])
 
 class TrajectoryGenerator:
@@ -204,22 +204,7 @@ class TrajectoryGenerator:
         Returns
         -------
         array_like
-            Time-parameterized trajectory with 20ms spacing
-
-        Raises
-        ------
-        NotImplementedError
-            This function needs to be implemented.
-
-        Hints
-        -----
-        Key Requirements:
-        - Timing: Waypoints must be spaced exactly 20ms apart for controller
-        - Safety: Stay within MAX_VELOCITY and MAX_ACCELERATION limits 
-        - Smoothness: Use trapezoidal velocity profile for acceleration/deceleration
-
-        Implementation:
-        - Use max velocity and acceleration from RobotConfig
+            Time-parameterizedd acceleration from RobotConfig
         - Ensure smooth acceleration and deceleration
         - Keep 20ms between waypoints as required by controller
 
@@ -328,7 +313,7 @@ class TrajectoryFollower:
         rospy.loginfo('Publishing joints trajectory...')
         # To ensure skill doesn't end before completing trajectory, make the buffer time much longer than needed
         if (len(joint_trajectory) > 0):
-            self.fa.goto_joints(joint_trajectory[0], duration=1000, dynamic=True, buffer_time=10)
+            self.fa.goto_joints(joint_trajectory[0], duration=1000, dynamic=True, buffer_time=50)
             init_time = rospy.Time.now().to_time()
             for i in range(1, len(joint_trajectory)):
                 traj_gen_proto_msg = JointPositionSensorMessage(

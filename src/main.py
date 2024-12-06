@@ -34,7 +34,7 @@ drawing_dh_parameters = np.array([
     [0.088, np.pi/2, 0, None],   # Joint 7
     [0, 0, 0.107, -np.pi/4],     # Flange
     [0, 0, 0.1034, 0],            # Center of grip
-    [0, 0, 0.03, 0],            # End of pen
+    [0, 0, 0.05, 0]            # End of pen
 ])
 
 # Define default values
@@ -58,7 +58,7 @@ TG = TrajectoryGenerator()
 TF = TrajectoryFollower()
 print('Starting robot')
 fa = FrankaArm()
-fa.open_gripper()
+# fa.open_gripper()
 fa.reset_joints()
 robot = Robot()
 
@@ -66,14 +66,15 @@ robot = Robot()
 def go(end_pose, drawing=False):
     current_pose = np.eye(4)
     if drawing:
-        current_pose = robot.forward_kinematics(drawing_dh_parameters, fa.get_joints())[:3, :3]
+        current_pose = robot.forward_kinematics(drawing_dh_parameters, fa.get_joints())
     else:
         current_pose = robot.forward_kinematics(dh_parameters, fa.get_joints())
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
     unconverged = True
     seed = fa.get_joints()
-    while(unconverged):
-        try: 
+    attempts = 0
+    while(unconverged and attempts < 5):
+        try:
             joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, drawing, seed)
             joint_trajectory = np.array(joint_trajectory)
             interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
@@ -81,8 +82,9 @@ def go(end_pose, drawing=False):
             unconverged = False
         except:
             print('Ik did not converge')
-            random_adjustment = np.random.randint(0, 0.0001, 7)
+            random_adjustment = np.random.uniform(low=0, high=0.0001, size=(7,))
             seed = seed + random_adjustment
+            attempts += 1
 
 # read the pen holder position from pen_holder_pose.npy
 pen_rot = robot.forward_kinematics(dh_parameters, fa.get_joints())[:3, :3]
@@ -110,13 +112,13 @@ whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
 line_1_start_pose = whiteboard_pose
 line_1_end_pose = np.eye(4)
 line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.15, 0, 0])
+line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.3, 0, 0])
 
 circle_start_pose = whiteboard_pose
 circle_xyzs = []
 '''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
 for i in range(128):
-    point = (np.array([0.15*np.cos(i*2*np.pi/256) - 0.15, 0.15*np.sin(i*2*np.pi/256), 0, 1]))
+    point = (np.array([0.1*np.cos(i*2*np.pi/256) - 0.1, 0.1*np.sin(i*2*np.pi/256), 0, 1]))
     transformed = whiteboard_pose @ point
     transformed = transformed[:3]
     circle_xyzs.append(transformed)
@@ -191,7 +193,7 @@ while (True):
         else:
             continue
     elif response == 'w':
-        go(whiteboard_pose)
+        go(whiteboard_pose, True)
         adjust = True
         while (adjust):
             response = input("Press 'a' to adjust pen position, 'c' to continue: ")
@@ -216,8 +218,10 @@ while (True):
             # cartesian_trajectory = TG.generate_curve(circle_poses)
             # cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
             unconverged = True
-            while(unconverged):
-                try: 
+            seed = fa.get_joints()
+            attempts = 0
+            while(unconverged and attempts < 5):
+                try:
                     joint_trajectory = TG.convert_cartesian_to_joint(circle_poses, True, seed)
                     joint_trajectory = np.array(joint_trajectory)
                     interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
@@ -225,8 +229,9 @@ while (True):
                     unconverged = False
                 except:
                     print('Ik did not converge')
-                    random_adjustment = np.random.randint(0, 0.0001, 7)
+                    random_adjustment = np.random.uniform(low=0, high=0.0001, size=(7,))
                     seed = seed + random_adjustment
+                    attempts += 1
             joint_trajectory = np.array(joint_trajectory)
             TF.follow_joint_trajectory(joint_trajectory)
         elif response == '3':
