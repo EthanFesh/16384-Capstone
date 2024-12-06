@@ -29,18 +29,18 @@ dh_parameters = np.array([
     [0, 0, 0.1034, 0]            # Center of grip
 ])
 
-# drawing_dh_parameters = np.array([
-#     [0, 0, 0.333, None],         # Joint 1
-#     [0, -np.pi/2, 0, None],      # Joint 2
-#     [0, np.pi/2, 0.316, None],   # Joint 3
-#     [0.0825, np.pi/2, 0, None],  # Joint 4
-#     [-0.0825, -np.pi/2, 0.384, None], # Joint 5
-#     [0, np.pi/2, 0, None],       # Joint 6
-#     [0.088, np.pi/2, 0, None],   # Joint 7
-#     [0, 0, 0.107, -np.pi/4],     # Flange
-#     [0, 0, 0.1034, 0],            # Center of grip
-#     [0, 0, 0.05, 0],            # End of pen
-# ])
+drawing_dh_parameters = np.array([
+    [0, 0, 0.333, None],         # Joint 1
+    [0, -np.pi/2, 0, None],      # Joint 2
+    [0, np.pi/2, 0.316, None],   # Joint 3
+    [0.0825, np.pi/2, 0, None],  # Joint 4
+    [-0.0825, -np.pi/2, 0.384, None], # Joint 5
+    [0, np.pi/2, 0, None],       # Joint 6
+    [0.088, np.pi/2, 0, None],   # Joint 7
+    [0, 0, 0.107, -np.pi/4],     # Flange
+    [0, 0, 0.1034, 0],            # Center of grip
+    [0, 0, 0.03, 0],            # End of pen
+])
 
 class TrajectoryGenerator:
     def __init__(self, dt=0.02):
@@ -256,7 +256,7 @@ class TrajectoryGenerator:
         print("return trajectory length", len(return_trajectory))
         return return_trajectory
     
-    def convert_cartesian_to_joint(self, cartesian_trajectory):
+    def convert_cartesian_to_joint(self, cartesian_trajectory, drawing, seed):
         """
         Convert Cartesian trajectory to joint             if np.any(config < RobotConfig.JOINT_LIMITS_MIN) or np.any(config > RobotConfig.JOINT_LIMITS_MAX):
                 raise ValueError('Joint limits violated')
@@ -290,7 +290,10 @@ class TrajectoryGenerator:
         joint_trajectory = []
         robot = Robot()
         for pose in cartesian_trajectory:
-            config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else None, dh_parameters)
+            if (drawing):
+                config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else seed, drawing_dh_parameters)
+            else:
+                config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else seed, dh_parameters)
             joint_trajectory.append(config)
         output = []
         none_counter = 0

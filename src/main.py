@@ -24,6 +24,19 @@ dh_parameters = np.array([
     [0, 0, 0.1034, 0] # Center of grip
 ])
 
+drawing_dh_parameters = np.array([
+    [0, 0, 0.333, None],         # Joint 1
+    [0, -np.pi/2, 0, None],      # Joint 2
+    [0, np.pi/2, 0.316, None],   # Joint 3
+    [0.0825, np.pi/2, 0, None],  # Joint 4
+    [-0.0825, -np.pi/2, 0.384, None], # Joint 5
+    [0, np.pi/2, 0, None],       # Joint 6
+    [0.088, np.pi/2, 0, None],   # Joint 7
+    [0, 0, 0.107, -np.pi/4],     # Flange
+    [0, 0, 0.1034, 0],            # Center of grip
+    [0, 0, 0.03, 0],            # End of pen
+])
+
 # Define default values
 parser = argparse.ArgumentParser()
 parser.add_argument('--foo', default=1, type=float, help='foo')
@@ -50,17 +63,26 @@ fa.reset_joints()
 robot = Robot()
 
 # Wrapper function that generates and follows trajectories to a desired pose
-def go(end_pose):
+def go(end_pose, drawing=False):
     current_pose = np.eye(4)
-    current_pose = robot.forward_kinematics(dh_parameters, fa.get_joints())
+    if drawing:
+        current_pose = robot.forward_kinematics(drawing_dh_parameters, fa.get_joints())[:3, :3]
+    else:
+        current_pose = robot.forward_kinematics(dh_parameters, fa.get_joints())
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
-    try: 
-        joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory)
-        joint_trajectory = np.array(joint_trajectory)
-        interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
-        TF.follow_joint_trajectory(interp_trajectory)
-    except:
-        print('Ik did not converge')
+    unconverged = True
+    seed = fa.get_joints()
+    while(unconverged):
+        try: 
+            joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, drawing, seed)
+            joint_trajectory = np.array(joint_trajectory)
+            interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
+            TF.follow_joint_trajectory(interp_trajectory)
+            unconverged = False
+        except:
+            print('Ik did not converge')
+            random_adjustment = np.random.randint(0, 0.0001, 7)
+            seed = seed + random_adjustment
 
 # read the pen holder position from pen_holder_pose.npy
 pen_rot = robot.forward_kinematics(dh_parameters, fa.get_joints())[:3, :3]
@@ -193,10 +215,18 @@ while (True):
         elif response == '2':
             # cartesian_trajectory = TG.generate_curve(circle_poses)
             # cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
-            try: 
-                joint_trajectory = TG.convert_cartesian_to_joint(circle_poses)
-            except:
-                print('Ik did not converge')
+            unconverged = True
+            while(unconverged):
+                try: 
+                    joint_trajectory = TG.convert_cartesian_to_joint(circle_poses, True, seed)
+                    joint_trajectory = np.array(joint_trajectory)
+                    interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
+                    TF.follow_joint_trajectory(interp_trajectory)
+                    unconverged = False
+                except:
+                    print('Ik did not converge')
+                    random_adjustment = np.random.randint(0, 0.0001, 7)
+                    seed = seed + random_adjustment
             joint_trajectory = np.array(joint_trajectory)
             TF.follow_joint_trajectory(joint_trajectory)
         elif response == '3':
