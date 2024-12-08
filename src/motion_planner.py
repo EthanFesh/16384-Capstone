@@ -313,7 +313,7 @@ class TrajectoryFollower:
         rospy.loginfo('Publishing joints trajectory...')
         # To ensure skill doesn't end before completing trajectory, make the buffer time much longer than needed
         if (len(joint_trajectory) > 0):
-            self.fa.goto_joints(joint_trajectory[0], duration=1000, dynamic=True, buffer_time=50)
+            self.fa.goto_joints(joint_trajectory[0], duration=1000, dynamic=True, buffer_time=100)
             init_time = rospy.Time.now().to_time()
             for i in range(1, len(joint_trajectory)):
                 traj_gen_proto_msg = JointPositionSensorMessage(

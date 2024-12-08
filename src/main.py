@@ -117,7 +117,7 @@ whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
 line_1_start_pose = whiteboard_pose
 line_1_end_pose = np.eye(4)
 line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.3, 0, 0])
+line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.2, 0, 0])
 
 circle_start_pose = whiteboard_pose
 circle_xyzs = []
@@ -138,7 +138,12 @@ for circle_xyz in circle_xyzs:
 line_2_start_pose = whiteboard_pose
 line_2_end_pose = np.eye(4)
 line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([-0.07, 0.1, 0])
+line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([0, 0.1, 0])
+
+line_3_start_pose = whiteboard_pose
+line_3_end_pose = np.eye(4)
+line_3_end_pose[:3, :3] = whiteboard_pose[:3, :3]
+line_3_end_pose[:3, 3] = line_3_start_pose[:3, 3] + np.array([-0.1, 0.05, 0])
 
 # Define drop bin pose (4x4 matrix)
 drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)
@@ -147,7 +152,7 @@ print('Ready')
 while (True):
     response = input("Press 'p' to pick up a pen, 'w' to write, 'd' to move pen over drop bin, 'q' to quit: ")
     if response == 'p':
-        response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen: ")
+        response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen: ", "b for blue pen")
         color = ""
         if (response == 'p'):
             color = "pink"
@@ -158,6 +163,9 @@ while (True):
         elif (response == 'g'):
             color = "green"
             go(green_pen_pose)
+        elif (response == 'b'):
+            color = "blue"
+            go(blue_pen_pose)
         else:
             print('Invalid input')
         adjust = True
@@ -171,8 +179,10 @@ while (True):
                     xyz = xyz + pink_pen_xyz
                 elif (color == "indigo"):
                     xyz = xyz + indigo_pen_xyz
+                elif (color == "green"):
+                    xyz = xyz + green_pen_xyz
                 else:
-                    xyz = xyz + green_pen_pose
+                    xyz = xyz + blue_pen_pose
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = pen_rot
                 goal_pose[:3, 3] = xyz
@@ -211,17 +221,22 @@ while (True):
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = whiteboard_pose[:3, :3]
                 goal_pose[:3, 3] = transformed[:3]
+                for pose in circle_poses:
+                    pose[:3, 3] = pose[:3, 3] + transformed[:3]
+                line_1_end_pose[:3, 3] = line_1_end_pose[:3, 3] + transformed[:3]
+                line_2_end_pose[:3, 3] = line_2_end_pose[:3, 3] + transformed[:3]
+                line_3_end_pose[:3, 3] = line_3_end_pose[:3, 3] + transformed[:3]
                 go(goal_pose)
             elif (response == 'c'):
                 adjust = False
             else:
                 print('Invalid input')
-        response = input("Press '1' for first line, '2' for circle, '3' for second line: ")
+        response = input("Press '1' for first line, '2' for circle, '3' for second line: , '4': for third line")
         if response == '1':
             go(line_1_end_pose)
         elif response == '2':
-            # cartesian_trajectory = TG.generate_curve(circle_poses)
-            # cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
+            cartesian_trajectory = TG.generate_curve(circle_poses)
+            cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
             unconverged = True
             seed = fa.get_joints()
             attempts = 0
@@ -241,6 +256,8 @@ while (True):
             TF.follow_joint_trajectory(joint_trajectory)
         elif response == '3':
             go(line_2_end_pose)
+        elif response == '4':
+            go(line_3_end_pose)
         else:
             print('Invalid input')
     elif response == 'd':
