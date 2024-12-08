@@ -231,12 +231,12 @@ while (True):
                 adjust = False
             else:
                 print('Invalid input')
-        response = input("Press '1' for first line, '2' for circle, '3' for second line: , '4': for third line")
+        response = input("Press '1' for first line, '2' for circle, '3' for second line: , '4' for third line: ")
         if response == '1':
             go(line_1_end_pose)
         elif response == '2':
-            cartesian_trajectory = TG.generate_curve(circle_poses)
-            cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
+            # cartesian_trajectory = TG.generate_curve(circle_poses)
+            # cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
             unconverged = True
             seed = fa.get_joints()
             attempts = 0
@@ -252,8 +252,6 @@ while (True):
                     random_adjustment = np.random.uniform(low=0, high=0.0001, size=(7,))
                     seed = seed + random_adjustment
                     attempts += 1
-            joint_trajectory = np.array(joint_trajectory)
-            TF.follow_joint_trajectory(joint_trajectory)
             # wait for user input to continue
             input("Press Enter to continue")
         elif response == '3':
@@ -288,6 +286,32 @@ while (True):
             continue
     elif response == 'q':
         break
+    elif response == 'h':
+        place_pose = np.eye(4)
+        place_pose[:3, :3] = drop_pose[:3, :3]
+        place_pose[:3, 3] = pink_pen_pose[:3, 3] + np.array([0, 0, 0.05])
+        adjust = True
+        while (adjust):
+            response = input("Press 'a' to adjust drop position, 'c' to continue: ")
+            if (response == 'a'):
+                response = input("Enter x, y, z: ")
+                xyz_strings = np.array(response.split(" "))
+                xyz = [i.astype(float) for i in xyz_strings]
+                xyz = np.append(xyz, 1.0)
+                transformed = drop_pose @ xyz
+                goal_pose = np.eye(4)
+                goal_pose[:3, :3] = drop_pose[:3, :3]
+                goal_pose[:3, 3] = transformed[:3]
+                go(goal_pose)
+            elif (response == 'c'):
+                adjust = False
+            else:
+                print('Invalid input')
+        response = input("Press 'r' to release pen: ")
+        if (response == 'r'):
+            fa.open_gripper()
+        else:
+            continue
     else:
         print('Invalid input')
     fa.reset_joints()
