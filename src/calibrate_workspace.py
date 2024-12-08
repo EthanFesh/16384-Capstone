@@ -50,6 +50,18 @@ class WorkspaceCalibrator:
         # print(type(current_pose.translation))
         # print(current_pose.translation.shape)
         np.save("green_pen_pose.npy", current_pose.translation)
+
+        # Calibrating pen 4 (blue)
+        input(f"Press Enter to calibrate pen 4 (blue)")
+        print(f"Move robot above a pen, the position will be printed out after {self.duration} seconds")
+        self.fa.run_guide_mode(duration=self.duration)  # Allow manual positioning
+        
+        # Record position
+        current_pose = self.fa.get_pose()
+        print(f"Recorded pen 4 at: {current_pose.translation}")
+        # print(type(current_pose.translation))
+        # print(current_pose.translation.shape)
+        np.save("blue_pen_pose.npy", current_pose.translation)
         return current_pose
     
     def calibrate_whiteboard(self):

@@ -91,6 +91,7 @@ pen_rot = robot.forward_kinematics(dh_parameters, fa.get_joints())[:3, :3]
 pink_pen_xyz = np.load("pink_pen_pose.npy", allow_pickle=True)
 indigo_pen_xyz = np.load("indigo_pen_pose.npy", allow_pickle=True)
 green_pen_xyz = np.load("green_pen_pose.npy", allow_pickle=True)
+blue_pen_xyz = np.load("blue_pen_pose.npy", allow_pickle=True)
 
 # Define pen poses (4x4 matrices)
 pink_pen_pose = np.eye(4)
@@ -104,6 +105,10 @@ indigo_pen_pose[:3, 3] = indigo_pen_xyz
 green_pen_pose = np.eye(4)
 green_pen_pose[:3, :3] = pen_rot
 green_pen_pose[:3, 3] = green_pen_xyz
+
+blue_pen_pose = np.eye(4)
+blue_pen_pose[:3, :3] = pen_rot
+blue_pen_pose[:3, 3] = blue_pen_xyz
 
 # Define drawing poses
 whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
