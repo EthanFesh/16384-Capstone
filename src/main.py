@@ -150,7 +150,7 @@ drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)
 
 print('Ready')
 while (True):
-    response = input("Press 'p' to pick up a pen, 'w' to write, 'd' to move pen over drop bin, 'q' to quit: ")
+    response = input("Press 'p' to pick up a pen, 'w' to write, 'd' to move pen over drop bin, 'h' to put pen back in holder', 'q' to quit: ")
     if response == 'p':
         response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen: ", "b for blue pen")
         color = ""
@@ -254,6 +254,8 @@ while (True):
                     attempts += 1
             joint_trajectory = np.array(joint_trajectory)
             TF.follow_joint_trajectory(joint_trajectory)
+            # wait for user input to continue
+            input("Press Enter to continue")
         elif response == '3':
             go(line_2_end_pose)
         elif response == '4':
