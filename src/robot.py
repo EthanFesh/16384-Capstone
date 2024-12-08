@@ -241,9 +241,9 @@ class Robot:
             
             # Check for singularity
             svd_values = np.linalg.svd(J, compute_uv=False)
-            if np.min(svd_values) < 0.1:
-                if d:
-                    print("Near singularity")
+            if np.min(svd_values) < 0.01:
+                print("Near singularity")
+                print(np.min(svd_values))
                 return None
 
             J_pinv = np.linalg.pinv(J)
@@ -267,13 +267,11 @@ class Robot:
                     RobotConfig.JOINT_LIMITS_MAX
                 )
                 if not fa.is_joints_reachable(new_joints):
-                    if d:
-                        print("unreachable new config")
+                    print("unreachable new config")
                     return None
             
             current_joints = new_joints
         
         # Failed to converge within max iterations
-        if d:
-            print("did not converge within max iter")
+        print("did not converge within max iter")
         return None

@@ -34,7 +34,7 @@ drawing_dh_parameters = np.array([
     [0.088, np.pi/2, 0, None],   # Joint 7
     [0, 0, 0.107, -np.pi/4],     # Flange
     [0, 0, 0.1034, 0],            # Center of grip
-    [0, 0, 0.05, 0]            # End of pen
+    [0, 0, 0.07, 0]            # End of pen
 ])
 
 # Define default values
@@ -113,12 +113,6 @@ blue_pen_pose[:3, 3] = blue_pen_xyz
 # Define drawing poses
 whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
 
-'''TODO: update the displacement with the actual value'''
-line_1_start_pose = whiteboard_pose
-line_1_end_pose = np.eye(4)
-line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.2, 0, 0])
-
 circle_start_pose = whiteboard_pose
 circle_xyzs = []
 '''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
@@ -133,6 +127,14 @@ for circle_xyz in circle_xyzs:
     circle_pose[:3, :3] = whiteboard_pose[:3, :3]
     circle_pose[:3, 3] = circle_xyz
     circle_poses.append(circle_pose)
+
+'''TODO: update the displacement with the actual value'''
+line_1_start_pose = whiteboard_pose
+line_1_end_pose = np.eye(4)
+line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
+displacement = np.array([-0.2, 0, 0, 1])
+transformed = whiteboard_pose @ displacement
+line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + transformed[:3]
 
 '''TODO: update the displacement with the actual value'''
 line_2_start_pose = whiteboard_pose
@@ -182,7 +184,7 @@ while (True):
                 elif (color == "green"):
                     xyz = xyz + green_pen_xyz
                 else:
-                    xyz = xyz + blue_pen_pose
+                    xyz = xyz + blue_pen_xyz
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = pen_rot
                 goal_pose[:3, 3] = xyz
@@ -253,7 +255,7 @@ while (True):
                     seed = seed + random_adjustment
                     attempts += 1
             # wait for user input to continue
-            input("Press Enter to continue")
+            # input("Press Enter to continue")
         elif response == '3':
             go(line_2_end_pose)
         elif response == '4':
@@ -288,20 +290,18 @@ while (True):
         break
     elif response == 'h':
         place_pose = np.eye(4)
-        place_pose[:3, :3] = drop_pose[:3, :3]
-        place_pose[:3, 3] = pink_pen_pose[:3, 3] + np.array([0, 0, 0.05])
+        place_pose[:3, :3] = pen_rot
+        place_pose[:3, 3] = pink_pen_pose[:3, 3] + np.array([0, 0, 0.1])
         adjust = True
         while (adjust):
             response = input("Press 'a' to adjust drop position, 'c' to continue: ")
             if (response == 'a'):
                 response = input("Enter x, y, z: ")
                 xyz_strings = np.array(response.split(" "))
-                xyz = [i.astype(float) for i in xyz_strings]
-                xyz = np.append(xyz, 1.0)
-                transformed = drop_pose @ xyz
+                xyz = np.array([i.astype(float) for i in xyz_strings])
                 goal_pose = np.eye(4)
-                goal_pose[:3, :3] = drop_pose[:3, :3]
-                goal_pose[:3, 3] = transformed[:3]
+                goal_pose[:3, :3] = pen_rot
+                goal_pose[:3, 3] = pink_pen_xyz + xyz
                 go(goal_pose)
             elif (response == 'c'):
                 adjust = False

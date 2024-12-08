@@ -39,7 +39,7 @@ drawing_dh_parameters = np.array([
     [0.088, np.pi/2, 0, None],   # Joint 7
     [0, 0, 0.107, -np.pi/4],     # Flange
     [0, 0, 0.1034, 0],            # Center of grip
-    [0, 0, 0.05, 0]            # End of pen
+    [0, 0, 0.07, 0]            # End of pen
 ])
 
 class TrajectoryGenerator:
