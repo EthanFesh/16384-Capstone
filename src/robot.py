@@ -240,11 +240,11 @@ class Robot:
             # print(J.shape)
             
             # Check for singularity
-            svd_values = np.linalg.svd(J, compute_uv=False)
-            if np.min(svd_values) < 0.01:
-                print("Near singularity")
-                print(np.min(svd_values))
-                return None
+            # svd_values = np.linalg.svd(J, compute_uv=False)
+            # if np.min(svd_values) < 0.01:
+            #     print("Near singularity")
+            #     print(np.min(svd_values))
+            #     return None
 
             J_pinv = np.linalg.pinv(J)
             
@@ -263,8 +263,8 @@ class Robot:
             if not fa.is_joints_reachable(new_joints):
                 new_joints = np.clip(
                     new_joints,
-                    RobotConfig.JOINT_LIMITS_MIN,
-                    RobotConfig.JOINT_LIMITS_MAX
+                    RobotConfig.JOINT_LIMITS_MIN*1.1,
+                    RobotConfig.JOINT_LIMITS_MAX*0.9
                 )
                 if not fa.is_joints_reachable(new_joints):
                     print("unreachable new config")

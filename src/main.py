@@ -140,12 +140,16 @@ line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + transformed[:3]
 line_2_start_pose = whiteboard_pose
 line_2_end_pose = np.eye(4)
 line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + np.array([0, 0.1, 0])
+displacement = np.array([0.2, 0, 0, 1])
+transformed = whiteboard_pose @ displacement
+line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + transformed[:3]
 
 line_3_start_pose = whiteboard_pose
 line_3_end_pose = np.eye(4)
 line_3_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-line_3_end_pose[:3, 3] = line_3_start_pose[:3, 3] + np.array([-0.1, 0.05, 0])
+displacement = np.array([-0.1, 0.05, 0, 1])
+transformed = whiteboard_pose @ displacement
+line_3_end_pose[:3, 3] = line_3_start_pose[:3, 3] + transformed[:3]
 
 # Define drop bin pose (4x4 matrix)
 drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)
