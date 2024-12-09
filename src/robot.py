@@ -697,7 +697,22 @@ class Robot:
         print("did not converge within max iter")
         return None
     
+    def axis_angle(self, m):
+        """ Converts a homogeneous transform to axis-angle representation """
+        cos_theta = (m[0,0] + m[1,1] + m[2,2] - 1.) / 2.
+        if cos_theta >= 1:
+            return 0., np.zeros(3)
+        sin_theta = np.sqrt(1 - cos_theta*cos_theta)
+        theta = np.arccos(cos_theta)
+        axis = np.array([
+            m[2,1] - m[1,2],
+            m[0,2] - m[2,0],
+            m[1,0] - m[0,1] ]) / (2 * sin_theta)
+        return axis, theta
+
     def twist(self, eeFrame, target):
+        # print(eeFrame, target)
+        # print(eeFrame.shape, target.shape)
         R = eeFrame[:3, :3].T @ target[:3, :3]
         axis, angle = self.axis_angle(R)
         t = target[:3, 3] - eeFrame[:3, 3]
@@ -705,12 +720,12 @@ class Robot:
         return np.concatenate((t, v))
 
     def numeric_jacobian(self, q, eps=1e-6):
-        T = self.forward_kinematics(q)[:, :  -1]
+        T = self.forward_kinematics_v1(q)[:, :,  -1]
         J = np.zeros((6,7))
         for i in range(7):
             qeps = q.copy()
             qeps[i] += eps
-            Teps = self.forward_kinematics(qeps)[:, : -1]
+            Teps = self.forward_kinematics_v1(qeps)[:, :, -1]
             J[:,i] = self.twist(T, Teps) / eps
         return J
     

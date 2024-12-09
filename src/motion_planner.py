@@ -266,7 +266,7 @@ class TrajectoryGenerator:
         for pose in cartesian_trajectory:
             # print(count)
             if (curve):
-                config = robot._inverse_kinematics_v1(pose, joint_trajectory[-1] if joint_trajectory else seed)
+                config = robot._inverse_kinematics_v3(pose, joint_trajectory[-1] if joint_trajectory else seed)
             else:
                 config = robot._inverse_kinematics_v2(pose, joint_trajectory[-1] if joint_trajectory else seed, dh_parameters)
             joint_trajectory.append(config)
