@@ -46,12 +46,12 @@ TF = TrajectoryFollower()
 print('Starting robot')
 fa = FrankaArm()
 # fa.open_gripper()
-# fa.reset_joints()
+fa.reset_joints()
 robot = Robot()
 
 def curve(circle_poses):
     print("trying to draw curve")
-    joint_trajectory = TG.convert_cartesian_to_joint(circle_poses, True, fa.get_joints())
+    joint_trajectory = TG.convert_cartesian_to_joint(circle_poses, True, fa.get_joints(), dh_parameters)
     joint_trajectory = np.array(joint_trajectory)
     interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
     TF.follow_joint_trajectory(interp_trajectory)
@@ -74,30 +74,30 @@ def curve(circle_poses):
 # Wrapper function that generates and follows trajectories to a desired pose
 def go(end_pose):
     current_pose = np.eye(4)
-    current_pose = robot.forward_kinematics(fa.get_joints(), dh_parameters)
+    current_pose = robot.forward_kinematics_v2(dh_parameters, fa.get_joints())
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
     unconverged = True
     seed = fa.get_joints()
     attempts = 0
-    joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, False, seed, dh_parameters)
-    joint_trajectory = np.array(joint_trajectory)
-    interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
-    TF.follow_joint_trajectory(interp_trajectory)
-    # while(unconverged and attempts < 5):
-    #     try:
-    #         joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, drawing, seed)
-    #         joint_trajectory = np.array(joint_trajectory)
-    #         interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
-    #         TF.follow_joint_trajectory(interp_trajectory)
-    #         unconverged = False
-        # except:
-        #     print('Ik did not converge')
-        #     random_adjustment = np.random.uniform(low=0, high=0.0001, size=(7,))
-        #     seed = seed + random_adjustment
-        #     attempts += 1
+    # joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, False, seed, dh_parameters)
+    # joint_trajectory = np.array(joint_trajectory)
+    # interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
+    # TF.follow_joint_trajectory(interp_trajectory)
+    while(unconverged and attempts < 5):
+        try:
+            joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, False, seed, dh_parameters)
+            joint_trajectory = np.array(joint_trajectory)
+            interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
+            TF.follow_joint_trajectory(interp_trajectory)
+            unconverged = False
+        except:
+            print('Ik threw error')
+            random_adjustment = np.random.uniform(low=0, high=0.0001, size=(7,))
+            seed = seed + random_adjustment
+            attempts += 1
 
 # read the pen holder position from pen_holder_pose.npy
-pen_rot = robot.forward_kinematics(fa.get_joints())[:, :, -1]
+pen_rot = robot.forward_kinematics_v2(dh_parameters, fa.get_joints())
 # print("pen_rot", pen_rot)
 pen_rot = pen_rot[:3, :3]
 # priS_rot)
@@ -183,6 +183,11 @@ for circle_xyz in circle4_xyzs:
     circle_pose[:3, :3] = whiteboard_pose[:3, :3]
     circle_pose[:3, 3] = circle_xyz
     circle4_poses.append(circle_pose)
+
+# circle1_poses = np.array([circle1_poses])
+# circle2_poses = np.array([circle2_poses])
+# circle3_poses = np.array([circle3_poses])
+# circle4_poses = np.array([circle4_poses])
 
 '''TODO: update the displacement with the actual value'''
 line_1_start_pose = whiteboard_pose
@@ -344,6 +349,7 @@ while (True):
         place_pose = np.eye(4)
         place_pose[:3, :3] = pen_rot
         place_pose[:3, 3] = pink_pen_pose[:3, 3] + np.array([0, 0, 0.1])
+        go(place_pose)
         adjust = True
         while (adjust):
             response = input("Press 'a' to adjust drop position, 'c' to continue: ")

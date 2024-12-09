@@ -68,8 +68,8 @@ class WorkspaceCalibrator:
         """Calibrate whiteboard position and orientation"""
         print("\nCalibrating whiteboard...")
         print("Moving to home position...")
-        self.fa.close_gripper()
         self.fa.reset_joints()
+        self.fa.close_gripper()
         
         # Get three points to define whiteboard plane
         points = []
@@ -136,9 +136,9 @@ def main():
     calibrator = WorkspaceCalibrator()
     
     # Perform calibration
-    # pen_positions = calibrator.calibrate_pen_holders()
+    pen_positions = calibrator.calibrate_pen_holders()
     whiteboard_pose = calibrator.calibrate_whiteboard()
-    # drop_pose = calibrator.calibrate_drop_location()
+    drop_pose = calibrator.calibrate_drop_location()
 
 if __name__ == "__main__":
     main()

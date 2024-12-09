@@ -262,7 +262,6 @@ class Robot:
         learning_rate = 0.01
 
         joint_angles = seed_joints.copy()
-
         for step in range(max_iterations):
             all_frames = self.forward_kinematics_v1(joint_angles)
             current_end_effector = all_frames[:, :, -1]
@@ -631,7 +630,7 @@ class Robot:
         # Get iteration parameters
         max_iters = TaskConfig.IK_MAX_ITERATIONS
         convergence_threshold = TaskConfig.IK_TOLERANCE
-        step_size = TaskConfig.PATH_RESOLUTION  *4
+        step_size = TaskConfig.PATH_RESOLUTION*4
 
         current_joints = seed_joints.copy()
 
