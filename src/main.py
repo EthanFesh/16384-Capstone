@@ -45,7 +45,7 @@ TG = TrajectoryGenerator()
 TF = TrajectoryFollower()
 print('Starting robot')
 fa = FrankaArm()
-# fa.open_gripper()
+fa.open_gripper()
 fa.reset_joints()
 robot = Robot()
 
@@ -55,7 +55,7 @@ def curve(circle_poses):
     joint_trajectory = np.array(joint_trajectory)
     interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
     TF.follow_joint_trajectory(interp_trajectory)
-    # unconverged = True
+    # unconverged = Truepink
     # seed = fa.get_joints()
     # attempts = 0
     # while(unconverged and attempts < 5):
@@ -190,16 +190,15 @@ while (True):
     elif response == 'w':
         go(whiteboard_pose)
         adjust = True
-        goal_pose = None
+        goal_pose = whiteboard_pose
         while (adjust):
             response = input("Press 'a' to adjust pen position, 'c' to continue: ")
             if (response == 'a'):
-                # current_pose = robot.forward_kinematics_v2(dh_parameters, fa.get_joints())
                 response = input("Enter x, y, z: ")
                 xyz_strings = np.array(response.split(" "))
                 xyz = [i.astype(float) for i in xyz_strings]
                 xyz = np.append(xyz, 1.0)
-                transformed = whiteboard_pose @ xyz
+                transformed = goal_pose @ xyz
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = whiteboard_pose[:3, :3]
                 goal_pose[:3, 3] = transformed[:3]
@@ -224,7 +223,7 @@ while (True):
         circle2_start_pose = goal_pose
         circle2_xyzs = []
         for i in range(64):
-            point = (np.array([-0.05*np.cos(i*2*np.pi/128) - 0.05, 0.05*np.sin(i*2*np.pi/128), 0, 1]))
+            point = (np.array([0.05*np.cos(i*2*np.pi/128) - 0.05, -0.05*np.sin(i*2*np.pi/128), 0, 1]))
             transformed = goal_pose @ point
             transformed = transformed[:3]
             circle2_xyzs.append(transformed)
@@ -236,7 +235,7 @@ while (True):
             circle2_poses.append(circle_pose)
         circle3_xyzs = []
         for i in range(64):
-            point = (np.array([-0.1*np.cos(i*2*np.pi/128) - 0.05, 0.05*np.sin(i*2*np.pi/128), 0, 1]))
+            point = (np.array([0.03*np.cos(i*2*np.pi/128) - 0.05, 0.06*np.sin(i*2*np.pi/128), 0, 1]))
             transformed = goal_pose @ point
             transformed = transformed[:3]
             circle3_xyzs.append(transformed)
@@ -248,7 +247,7 @@ while (True):
             circle3_poses.append(circle_pose)
         line_1_start_pose = goal_pose
         line1_poses = []
-        for i in range(32):
+        for i in range(50):
             displacement = np.array([-0.003*i, 0, 0, 1])
             transformed = goal_pose @ displacement
             new_pose = np.eye(4)
@@ -257,7 +256,7 @@ while (True):
             line1_poses.append(new_pose)
         line_2_start_pose = goal_pose
         line2_poses = []
-        for i in range(32):
+        for i in range(50):
             displacement = np.array([0, 0.003*i, 0, 1])
             transformed = goal_pose @ displacement
             new_pose = np.eye(4)
@@ -270,10 +269,19 @@ while (True):
             displacement = np.array([-0.003 * i, 0.003*i, 0, 1])
             transformed = goal_pose @ displacement
             new_pose = np.eye(4)
-            new_pose[:3, :3] = line_2_start_pose[:3, :3]
+            new_pose[:3, :3] = line_3_start_pose[:3, :3]
             new_pose[:3, 3] = transformed[:3]
-            line2_poses.append(new_pose)
-        response = input("Press '1' for first line, '2' for second line, '3' for third line , '4' for first curve, '5' for second curve, '6' for third curve: ")
+            line3_poses.append(new_pose)
+        line_4_start_pose = goal_pose
+        line4_poses = []
+        for i in range(32):
+            displacement = np.array([-0.003 * i, -0.003*i, 0, 1])
+            transformed = goal_pose @ displacement
+            new_pose = np.eye(4)
+            new_pose[:3, :3] = line_3_start_pose[:3, :3]
+            new_pose[:3, 3] = transformed[:3]
+            line4_poses.append(new_pose)
+        response = input("Press '1' for first line, '2' for second line, '3' for third line , '4' for first curve, '5' for second curve, '6' for third curve: , '7' for last line: ")
         if response == '1':
             curve(line1_poses)
         elif response == '2':
@@ -283,7 +291,7 @@ while (True):
             # wait for user input to continue
             # input("Press Enter to continue")
         elif response == '3':
-            curve(line3_poses)
+            curve(line3_poses)  
             # curve(circle3_poses)
             # go(line_2_end_pose, True)
         elif response == '4':
@@ -293,6 +301,8 @@ while (True):
             curve(circle2_poses)
         elif response == '6':
             curve(circle3_poses)
+        elif response == '7':
+            curve(line4_poses)
         else:
             print('Invalid input')
     elif response == 'd':
@@ -324,7 +334,7 @@ while (True):
     elif response == 'h':
         place_pose = np.eye(4)
         place_pose[:3, :3] = pen_rot
-        place_pose[:3, 3] = pink_pen_pose[:3, 3] + np.array([0, 0, 0.1])
+        place_pose[:3, 3] = blue_pen_pose[:3, 3] + np.array([0, 0, 0.1])
         go(place_pose)
         adjust = True
         while (adjust):
@@ -335,7 +345,7 @@ while (True):
                 xyz = np.array([i.astype(float) for i in xyz_strings])
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = pen_rot
-                goal_pose[:3, 3] = pink_pen_xyz + xyz
+                goal_pose[:3, 3] = place_pose[:3, 3] + xyz
                 go(goal_pose)
             elif (response == 'c'):
                 adjust = False

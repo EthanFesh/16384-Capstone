@@ -11,8 +11,8 @@ class WorkspaceCalibrator:
         """Calibrate pen holder positions through guided movement"""
         print("\nCalibrating pen holder...")
         print("Moving to home position...")
-        self.fa.reset_joints()
         self.fa.open_gripper()
+        self.fa.reset_joints()
         # self.fa.close_gripper()
         
         # Calibrating pen 1 (pink)
