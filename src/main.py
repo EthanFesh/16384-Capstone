@@ -46,7 +46,7 @@ TF = TrajectoryFollower()
 print('Starting robot')
 fa = FrankaArm()
 # fa.open_gripper()
-fa.reset_joints()
+# fa.reset_joints()
 robot = Robot()
 
 def curve(circle_poses):
@@ -72,7 +72,7 @@ def curve(circle_poses):
     #         attempts += 1
 
 # Wrapper function that generates and follows trajectories to a desired pose
-def go(end_pose):
+def go(end_pose, line=False):
     current_pose = np.eye(4)
     current_pose = robot.forward_kinematics_v2(dh_parameters, fa.get_joints())
     cartesian_trajectory = TG.generate_straight_line(current_pose, end_pose)
@@ -81,7 +81,7 @@ def go(end_pose):
     attempts = 0
     while(unconverged and attempts < 5):
         try:
-            joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, False, seed, dh_parameters)
+            joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, line, seed, dh_parameters)
             joint_trajectory = np.array(joint_trajectory)
             interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
             TF.follow_joint_trajectory(interp_trajectory)
@@ -140,8 +140,8 @@ for circle_xyz in circle1_xyzs:
 circle2_start_pose = whiteboard_pose
 circle2_xyzs = []
 '''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
-for i in range(128):
-    point = (np.array([0.1*np.cos(i*2*np.pi/256) - 0.1, -0.1*np.sin(i*2*np.pi/256), 0, 1]))
+for i in range(64):
+    point = (np.array([0.1*np.cos(i*2*np.pi/128) - 0.1, -0.1*np.sin(i*2*np.pi/128), 0, 1]))
     transformed = whiteboard_pose @ point
     transformed = transformed[:3]
     circle2_xyzs.append(transformed)
@@ -189,15 +189,19 @@ for circle_xyz in circle4_xyzs:
 line_1_start_pose = whiteboard_pose
 line_1_end_pose = np.eye(4)
 line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-displacement = np.array([0, 0.03, 0, 1])
-transformed = whiteboard_pose @ displacement
-line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + transformed[:3]
+# displacement = np.array([0, 0.03, 0, 1])
+# transformed = whiteboard_pose @ displacement
+
+#FOR SOME REASON THIS IS THE ONLY ONE I'VE FOUND THAT WORKS SO FAR
+# line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.1, 0, 0])
+
+line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.1, 0, 0])
 
 '''TODO: update the displacement with the actual value'''
 line_2_start_pose = whiteboard_pose
 line_2_end_pose = np.eye(4)
 line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-displacement = np.array([0.2, 0, 0, 1])
+displacement = np.array([-0.2, 0, 0, 1])
 transformed = whiteboard_pose @ displacement
 line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + transformed[:3]
 
@@ -240,12 +244,16 @@ while (True):
                 xyz = [i.astype(float) for i in xyz_strings]
                 if (color == "pink"):
                     xyz = xyz + pink_pen_xyz
+                    pink_pen_xyz += xyz
                 elif (color == "indigo"):
                     xyz = xyz + indigo_pen_xyz
+                    indigo_pen_xyz += xyz
                 elif (color == "green"):
                     xyz = xyz + green_pen_xyz
+                    green_pen_xyz += xyz
                 else:
                     xyz = xyz + blue_pen_xyz
+                    blue_pen_xyz += xyz
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = pen_rot
                 goal_pose[:3, 3] = xyz
@@ -275,6 +283,7 @@ while (True):
         while (adjust):
             response = input("Press 'a' to adjust pen position, 'c' to continue: ")
             if (response == 'a'):
+                # current_pose = robot.forward_kinematics_v2(dh_parameters, fa.get_joints())
                 response = input("Enter x, y, z: ")
                 xyz_strings = np.array(response.split(" "))
                 xyz = [i.astype(float) for i in xyz_strings]
@@ -282,8 +291,8 @@ while (True):
                 transformed = whiteboard_pose @ xyz
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = whiteboard_pose[:3, :3]
-                goal_pose[:3, 3] = transformed[:3]
-                for i in range(128):
+                goal_pose[:3, 3] = ransformed[:3]
+                for i in range(64):
                     circle1_xyzs[i] = circle1_xyzs[i] + transformed[:3]
                     circle2_xyzs[i] = circle2_xyzs[i] + transformed[:3]
                     circle3_xyzs[i] = circle3_xyzs[i] + transformed[:3]
@@ -298,9 +307,9 @@ while (True):
                 print('Invalid input')
         response = input("Press '1' for first line, '2' for circle, '3' for second line: , '4' for third line: ")
         if response == '1':
-            # go(line_1_end_pose)
+            go(line_1_end_pose, True)
 
-            curve(circle1_poses)
+            # curve(circle1_poses)
         elif response == '2':
             # cartesian_trajectory = TG.generate_curve(circle_poses)
             # cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
@@ -308,11 +317,11 @@ while (True):
             # wait for user input to continue
             # input("Press Enter to continue")
         elif response == '3':
-            curve(circle3_poses)
-            # go(line_2_end_pose)
+            # curve(circle3_poses)
+            go(line_2_end_pose, True)
         elif response == '4':
-            curve(circle4_poses)
-            # go(line_3_end_pose)
+            # curve(circle4_poses)
+            go(line_3_end_pose, True)
         else:
             print('Invalid input')
     elif response == 'd':

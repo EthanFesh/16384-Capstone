@@ -14,7 +14,7 @@ class TaskConfig:
     # Motion planning parameters
     PATH_RESOLUTION = 0.01  # meters
     IK_MAX_ITERATIONS = 10000
-    IK_TOLERANCE = 1e-2
+    IK_TOLERANCE = 1e-3
     
     # Task timing parameters
     GRASP_DURATION = 2.0
