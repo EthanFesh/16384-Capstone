@@ -125,8 +125,8 @@ whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
 circle1_start_pose = whiteboard_pose
 circle1_xyzs = []
 '''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
-for i in range(128):
-    point = (np.array([0.1*np.cos(i*2*np.pi/256) - 0.1, 0.1*np.sin(i*2*np.pi/256), 0, 1]))
+for i in range(64):
+    point = (np.array([0.1*np.cos(i*2*np.pi/128) - 0.1, 0.1*np.sin(i*2*np.pi/128), 0, 1]))
     transformed = whiteboard_pose @ point
     transformed = transformed[:3]
     circle1_xyzs.append(transformed)
@@ -154,8 +154,8 @@ for circle_xyz in circle2_xyzs:
 
 circle3_start_pose = whiteboard_pose
 circle3_xyzs = []
-for i in range(128):
-    point = (np.array([0.05*np.cos(i*2*np.pi/256) - 0.05, 0.1*np.sin(i*2*np.pi/256), 0, 1]))
+for i in range(64):
+    point = (np.array([0.05*np.cos(i*2*np.pi/128) - 0.05, 0.1*np.sin(i*2*np.pi/128), 0, 1]))
     transformed = whiteboard_pose @ point
     transformed = transformed[:3]
     circle3_xyzs.append(transformed)
@@ -168,8 +168,8 @@ for circle_xyz in circle3_xyzs:
 
 circle4_start_pose = whiteboard_pose
 circle4_xyzs = []
-for i in range(128):
-    point = (np.array([0.05*np.cos(i*2*np.pi/256) - 0.05, -0.1*np.sin(i*2*np.pi/256), 0, 1]))
+for i in range(64):
+    point = (np.array([0.05*np.cos(i*2*np.pi/128) - 0.05, -0.1*np.sin(i*2*np.pi/128), 0, 1]))
     transformed = whiteboard_pose @ point
     transformed = transformed[:3]
     circle4_xyzs.append(transformed)

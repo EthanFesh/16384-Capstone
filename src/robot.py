@@ -696,3 +696,112 @@ class Robot:
         # Failed to converge within max iterations
         print("did not converge within max iter")
         return None
+    
+    def twist(self, eeFrame, target):
+        R = eeFrame[:3, :3].T @ target[:3, :3]
+        axis, angle = self.axis_angle(R)
+        t = target[:3, 3] - eeFrame[:3, 3]
+        v = eeFrame[:3, :3] @ (angle * axis)
+        return np.concatenate((t, v))
+
+    def numeric_jacobian(self, q, eps=1e-6):
+        T = self.forward_kinematics(q)[:, :  -1]
+        J = np.zeros((6,7))
+        for i in range(7):
+            qeps = q.copy()
+            qeps[i] += eps
+            Teps = self.forward_kinematics(qeps)[:, : -1]
+            J[:,i] = self.twist(T, Teps) / eps
+        return J
+    
+    def _inverse_kinematics_v3(self, target_pose, seed_joints):
+        """
+        Compute inverse kinematics using Jacobian pseudo-inverse method.
+        
+        Your implementation should:
+        1. Start from seed joints
+        2. Iterate until convergence or max iterations
+        3. Check joint limits and singularities
+        4. Return None if no valid solution
+        
+        Parameters
+        ----------
+        target_pose : RigidTransform
+            Desired end-effector pose
+        seed_joints : np.ndarray
+            Initial joint configuration
+            
+        Returns
+        -------
+        np.ndarray or None
+            Joint angles that achieve target pose, or None if not found
+            
+        Hints
+        -----
+        - Use get_pose() and get_jacobian() from robot arm
+        - Use _compute_rotation_error() for orientation error
+        - Check joint limits with is_joints_reachable()
+        - Track pose error magnitude for convergence
+        - The iteration parameters are defined in RobotConfig and TaskConfig
+        """
+        # if seed_joints.shape[0] != (self.dof):
+        #     raise ValueError(f'Invalid initial_thetas: Expected shape ({self.dof},), got {seed_joints.shape}.')
+        # #print(type(target_pose))    
+        # #print(target_pose)
+        # #print(target_pose.shape)
+        # if target_pose.shape != (4,4):
+        #     raise ValueError('Invalid target_pose: Expected a 4x4 Transformation.')
+        
+        # if seed_joints is None:
+        #     seed_joints = self.robot.arm.get_joints()
+        
+        # # --------------- BEGIN STUDENT SECTION ------------------------------------------------
+        # # TODO: Implement gradient inverse kinematics
+        # max_iter = TaskConfig.IK_MAX_ITERATIONS
+        # stop_gradient = TaskConfig.IK_TOLERANCE
+        # gradient_step = 0.3
+
+        # current_joints = seed_joints
+        # current_pose = self.forward_kinematics(current_joints)[:,:,-1]
+
+        # jacobian = self.jacobians(current_joints)[:,:,-1]
+        # j_T = jacobian.T
+        
+        # gradient = j_T @ self._compute_config_error(current_pose,target_pose)
+        # # print(f"Starting error: {self._compute_config_error(current_pose,target_pose)}")
+        # # print(f"Starting gradient: {gradient}")
+
+        # iter_count = 0
+        # while(iter_count<max_iter and np.linalg.norm(gradient)>stop_gradient):
+        #     current_joints -= gradient_step*gradient
+        #     current_pose = self.forward_kinematics(current_joints)[:,:,-1]
+        #     jacobian = self.jacobians(current_joints)[:,:,-1]
+        #     j_T = jacobian.T
+        #     gradient = j_T @ self._compute_config_error(current_pose,target_pose)
+        #     iter_count += 1
+        # #print(current_joints)
+        # #print(iter_count)	
+        # return current_joints
+
+        max_iterations = TaskConfig.IK_MAX_ITERATIONS
+        tolerance = TaskConfig.IK_TOLERANCE
+        learning_rate = 0.01
+
+        joint_angles = seed_joints.copy()
+        for step in range(max_iterations):
+            all_frames = self.forward_kinematics_v1(joint_angles)
+            current_end_effector = all_frames[:, :, -1]
+
+            total_error = self.twist(current_end_effector, target_pose)
+            error_norm = np.linalg.norm(total_error)
+
+            if error_norm < tolerance:
+                return joint_angles
+
+            jacobian = self.numeric_jacobian(joint_angles)
+            jacobian_pinv = np.linalg.pinv(jacobian, rcond=1e-6)
+
+            delta_angles = learning_rate * jacobian_pinv @ total_error
+            joint_angles += delta_angles
+        print("didn't converge within max iters")
+        return None
