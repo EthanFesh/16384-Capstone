@@ -122,103 +122,6 @@ blue_pen_pose[:3, 3] = blue_pen_xyz
 # Define drawing poses
 whiteboard_pose = np.load("whiteboard_pose.npy", allow_pickle=True)
 
-circle1_start_pose = whiteboard_pose
-circle1_xyzs = []
-'''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
-for i in range(64):
-    point = (np.array([0.1*np.cos(i*2*np.pi/128) - 0.1, 0.1*np.sin(i*2*np.pi/128), 0, 1]))
-    transformed = whiteboard_pose @ point
-    transformed = transformed[:3]
-    circle1_xyzs.append(transformed)
-circle1_poses = []
-for circle_xyz in circle1_xyzs:
-    circle_pose = np.eye(4)
-    circle_pose[:3, :3] = whiteboard_pose[:3, :3]
-    circle_pose[:3, 3] = circle_xyz
-    circle1_poses.append(circle_pose)
-
-circle2_start_pose = whiteboard_pose
-circle2_xyzs = []
-'''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
-for i in range(64):
-    point = (np.array([0.1*np.cos(i*2*np.pi/128) - 0.1, -0.1*np.sin(i*2*np.pi/128), 0, 1]))
-    transformed = whiteboard_pose @ point
-    transformed = transformed[:3]
-    circle2_xyzs.append(transformed)
-circle2_poses = []
-for circle_xyz in circle2_xyzs:
-    circle_pose = np.eye(4)
-    circle_pose[:3, :3] = whiteboard_pose[:3, :3]
-    circle_pose[:3, 3] = circle_xyz
-    circle2_poses.append(circle_pose)
-
-circle3_start_pose = whiteboard_pose
-circle3_xyzs = []
-for i in range(64):
-    point = (np.array([0.05*np.cos(i*2*np.pi/128) - 0.05, 0.1*np.sin(i*2*np.pi/128), 0, 1]))
-    transformed = whiteboard_pose @ point
-    transformed = transformed[:3]
-    circle3_xyzs.append(transformed)
-circle3_poses = []
-for circle_xyz in circle3_xyzs:
-    circle_pose = np.eye(4)
-    circle_pose[:3, :3] = whiteboard_pose[:3, :3]
-    circle_pose[:3, 3] = circle_xyz
-    circle3_poses.append(circle_pose)
-
-circle4_start_pose = whiteboard_pose
-circle4_xyzs = []
-for i in range(64):
-    point = (np.array([0.05*np.cos(i*2*np.pi/128) - 0.05, -0.1*np.sin(i*2*np.pi/128), 0, 1]))
-    transformed = whiteboard_pose @ point
-    transformed = transformed[:3]
-    circle4_xyzs.append(transformed)
-circle4_poses = []
-for circle_xyz in circle4_xyzs:
-    circle_pose = np.eye(4)
-    circle_pose[:3, :3] = whiteboard_pose[:3, :3]
-    circle_pose[:3, 3] = circle_xyz
-    circle4_poses.append(circle_pose)
-
-# circle1_poses = np.array([circle1_poses])
-# circle2_poses = np.array([circle2_poses])
-# circle3_poses = np.array([circle3_poses])
-# circle4_poses = np.array([circle4_poses])
-
-'''TODO: update the displacement with the actual value'''
-line_1_start_pose = whiteboard_pose
-line_poses = []
-for i in range(64):
-    displacement = np.array([-0.001*i, 0, 0, 1])
-    transformed = whiteboard_pose @ displacement
-    new_pose = np.eye(4)
-    new_pose[:3, :3] = line_1_start_pose[:3, :3]
-    new_pose[:3, 3] = transformed[:3]
-    line_poses.append(new_pose)
-
-# displacement = np.array([0, 0.03, 0, 1])
-# transformed = whiteboard_pose @ displacement
-
-#FOR SOME REASON THIS IS THE ONLY ONE I'VE FOUND THAT WORKS SO FAR
-# line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.1, 0, 0])
-
-# line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + np.array([-0.1, 0, 0])
-
-'''TODO: update the displacement with the actual value'''
-line_2_start_pose = whiteboard_pose
-line_2_end_pose = np.eye(4)
-line_2_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-displacement = np.array([-0.2, 0, 0, 1])
-transformed = whiteboard_pose @ displacement
-line_2_end_pose[:3, 3] = line_2_start_pose[:3, 3] + transformed[:3]
-
-line_3_start_pose = whiteboard_pose
-line_3_end_pose = np.eye(4)
-line_3_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-displacement = np.array([-0.1, 0.05, 0, 1])
-transformed = whiteboard_pose @ displacement
-line_3_end_pose[:3, 3] = line_3_start_pose[:3, 3] + transformed[:3]
-
 # Define drop bin pose (4x4 matrix)
 drop_pose = np.load("drop_bin_pose.npy", allow_pickle=True)
 
@@ -229,12 +132,7 @@ while (True):
         response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen, 'b' for blue pen: ")
         color = ""
         if (response == 'p'):
-            color = "pink"e1_poses = []
-        for circle_xyz in circle1_xyzs:
-            circle_pose = np.eye(4)
-            circle_pose[:3, :3] = whiteboard_pose[:3, :3]
-            circle_pose[:3, 3] = circle_xyz
-            circle1_poses.ap
+            color = "pink"
             go(pink_pen_pose)
         elif (response == 'i'):
             color = "indigo"
@@ -305,14 +203,6 @@ while (True):
                 goal_pose = np.eye(4)
                 goal_pose[:3, :3] = whiteboard_pose[:3, :3]
                 goal_pose[:3, 3] = transformed[:3]
-                # for i in range(64):
-                    # circle1_xyzs[i] = circle1_xyzs[i] + transformed[:3]
-                    # circle2_xyzs[i] = circle2_xyzs[i] + transformed[:3]
-                    # circle3_xyzs[i] = circle3_xyzs[i] + transformed[:3]
-                    # circle4_xyzs[i] = circle4_xyzs[i] + transformed[:3]
-                    # line_poses[i] = 
-                line_2_end_pose[:3, 3] = line_2_end_pose[:3, 3] + transformed[:3]
-                line_3_end_pose[:3, 3] = line_3_end_pose[:3, 3] + transformed[:3]
                 go(goal_pose)
             elif (response == 'c'):
                 adjust = False
@@ -320,9 +210,8 @@ while (True):
                 print('Invalid input')
         circle1_start_pose = goal_pose
         circle1_xyzs = []
-        '''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
         for i in range(64):
-            point = (np.array([0.1*np.cos(i*2*np.pi/128) - 0.1, 0.1*np.sin(i*2*np.pi/128), 0, 1]))
+            point = (np.array([0.05*np.cos(i*2*np.pi/128) - 0.05, 0.05*np.sin(i*2*np.pi/128), 0, 1]))
             transformed = goal_pose @ point
             transformed = transformed[:3]
             circle1_xyzs.append(transformed)
@@ -334,9 +223,8 @@ while (True):
             circle1_poses.append(circle_pose)
         circle2_start_pose = goal_pose
         circle2_xyzs = []
-        '''TODO: generate points in a circle with radius 0.1m starting from the end of the first line'''
         for i in range(64):
-            point = (np.array([0.1*np.cos(i*2*np.pi/128) - 0.1, -0.1*np.sin(i*2*np.pi/128), 0, 1]))
+            point = (np.array([-0.05*np.cos(i*2*np.pi/128) - 0.05, 0.05*np.sin(i*2*np.pi/128), 0, 1]))
             transformed = goal_pose @ point
             transformed = transformed[:3]
             circle2_xyzs.append(transformed)
@@ -346,9 +234,21 @@ while (True):
             circle_pose[:3, :3] = whiteboard_pose[:3, :3]
             circle_pose[:3, 3] = circle_xyz
             circle2_poses.append(circle_pose)
+        circle3_xyzs = []
+        for i in range(64):
+            point = (np.array([-0.1*np.cos(i*2*np.pi/128) - 0.05, 0.05*np.sin(i*2*np.pi/128), 0, 1]))
+            transformed = goal_pose @ point
+            transformed = transformed[:3]
+            circle3_xyzs.append(transformed)
+        circle3_poses = []
+        for circle_xyz in circle3_xyzs:
+            circle_pose = np.eye(4)
+            circle_pose[:3, :3] = whiteboard_pose[:3, :3]
+            circle_pose[:3, 3] = circle_xyz
+            circle3_poses.append(circle_pose)
         line_1_start_pose = goal_pose
         line1_poses = []
-        for i in range(70):
+        for i in range(32):
             displacement = np.array([-0.003*i, 0, 0, 1])
             transformed = goal_pose @ displacement
             new_pose = np.eye(4)
@@ -364,22 +264,35 @@ while (True):
             new_pose[:3, :3] = line_2_start_pose[:3, :3]
             new_pose[:3, 3] = transformed[:3]
             line2_poses.append(new_pose)
-        response = input("Press '1' for first line, '2' for circle, '3' for second line: , '4' for third line: ")
+        line_3_start_pose = goal_pose
+        line3_poses = []
+        for i in range(32):
+            displacement = np.array([-0.003 * i, 0.003*i, 0, 1])
+            transformed = goal_pose @ displacement
+            new_pose = np.eye(4)
+            new_pose[:3, :3] = line_2_start_pose[:3, :3]
+            new_pose[:3, 3] = transformed[:3]
+            line2_poses.append(new_pose)
+        response = input("Press '1' for first line, '2' for second line, '3' for third line , '4' for first curve, '5' for second curve, '6' for third curve: ")
         if response == '1':
-            curve(circle1_poses)
+            curve(line1_poses)
         elif response == '2':
             # cartesian_trajectory = TG.generate_curve(circle_poses)
             # cartesian_trajectory = TG.interpolate_cartesian_trajectory(cartesian_trajectory)
-            curve(circle2_poses)
+            curve(line2_poses)
             # wait for user input to continue
             # input("Press Enter to continue")
         elif response == '3':
-            curve(line1_poses)
+            curve(line3_poses)
             # curve(circle3_poses)
             # go(line_2_end_pose, True)
         elif response == '4':
-            curve(line2_poses)
+            curve(circle1_poses)
             # go(line_3_end_pose, True)
+        elif response == '5':
+            curve(circle2_poses)
+        elif response == '6':
+            curve(circle3_poses)
         else:
             print('Invalid input')
     elif response == 'd':
