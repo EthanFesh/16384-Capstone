@@ -79,7 +79,7 @@ class TrajectoryGenerator:
         p_1 = end_pose[:3, :3]
         p_0 = _rotation_to_quaternion(p_0)
         p_1 = _rotation_to_quaternion(p_1)
-        num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)+1
+        num_points = int(np.linalg.norm(d_1 - d_0) / TaskConfig.PATH_RESOLUTION)
         cartesian_trajectory = []
         for i in range(num_points):
             t = i / num_points
@@ -274,12 +274,16 @@ class TrajectoryGenerator:
         print("in cartesian to joint")
         joint_trajectory = []
         robot = Robot()
+        count = 0
+        print(cartesian_trajectory.shape)
         for pose in cartesian_trajectory:
+            print(count)
             if (drawing):
-                config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else seed, drawing_dh_parameters)
+                config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else seed)
             else:
-                config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else seed, dh_parameters)
+                config = robot._inverse_kinematics(pose, joint_trajectory[-1] if joint_trajectory else seed)
             joint_trajectory.append(config)
+            count = count + 1
         output = []
         none_counter = 0
         for pose in joint_trajectory:

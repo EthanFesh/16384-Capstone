@@ -59,35 +59,42 @@ TF = TrajectoryFollower()
 print('Starting robot')
 fa = FrankaArm()
 # fa.open_gripper()
-fa.reset_joints()
+# fa.reset_joints()
 robot = Robot()
 
 # Wrapper function that generates and follows trajectories to a desired pose
 def go(end_pose, drawing=False):
     current_pose = np.eye(4)
     if drawing:
-        current_pose = robot.forward_kinematics(drawing_dh_parameters, fa.get_joints())
+        current_pose = robot.forward_kinematics(fa.get_joints())[:, :, -1]
     else:
-        current_pose = robot.forward_kinematics(dh_parameters, fa.get_joints())
+        current_pose = robot.forward_kinematics(fa.get_joints())[:, :, -1]
     cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
     unconverged = True
     seed = fa.get_joints()
     attempts = 0
-    while(unconverged and attempts < 5):
-        try:
-            joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, drawing, seed)
-            joint_trajectory = np.array(joint_trajectory)
-            interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
-            TF.follow_joint_trajectory(interp_trajectory)
-            unconverged = False
-        except:
-            print('Ik did not converge')
-            random_adjustment = np.random.uniform(low=0, high=0.0001, size=(7,))
-            seed = seed + random_adjustment
-            attempts += 1
+    joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, drawing, seed)
+    joint_trajectory = np.array(joint_trajectory)
+    interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
+    TF.follow_joint_trajectory(interp_trajectory)
+    # while(unconverged and attempts < 5):
+    #     try:
+    #         joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, drawing, seed)
+    #         joint_trajectory = np.array(joint_trajectory)
+    #         interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
+    #         TF.follow_joint_trajectory(interp_trajectory)
+    #         unconverged = False
+        # except:
+        #     print('Ik did not converge')
+        #     random_adjustment = np.random.uniform(low=0, high=0.0001, size=(7,))
+        #     seed = seed + random_adjustment
+        #     attempts += 1
 
 # read the pen holder position from pen_holder_pose.npy
-pen_rot = robot.forward_kinematics(dh_parameters, fa.get_joints())[:3, :3]
+pen_rot = robot.forward_kinematics(fa.get_joints())[:, :, -1]
+# print("pen_rot", pen_rot)
+pen_rot = pen_rot[:3, :3]
+# priS_rot)
 pink_pen_xyz = np.load("pink_pen_pose.npy", allow_pickle=True)
 indigo_pen_xyz = np.load("indigo_pen_pose.npy", allow_pickle=True)
 green_pen_xyz = np.load("green_pen_pose.npy", allow_pickle=True)
@@ -132,7 +139,7 @@ for circle_xyz in circle_xyzs:
 line_1_start_pose = whiteboard_pose
 line_1_end_pose = np.eye(4)
 line_1_end_pose[:3, :3] = whiteboard_pose[:3, :3]
-displacement = np.array([-0.2, 0, 0, 1])
+displacement = np.array([0, 0.03, 0, 1])
 transformed = whiteboard_pose @ displacement
 line_1_end_pose[:3, 3] = line_1_start_pose[:3, 3] + transformed[:3]
 
@@ -158,7 +165,7 @@ print('Ready')
 while (True):
     response = input("Press 'p' to pick up a pen, 'w' to write, 'd' to move pen over drop bin, 'h' to put pen back in holder', 'q' to quit: ")
     if response == 'p':
-        response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen: ", "b for blue pen")
+        response = input("Press 'p' for pink pen, 'i' for indigo pen, 'g' for green pen, 'b' for blue pen: ")
         color = ""
         if (response == 'p'):
             color = "pink"
