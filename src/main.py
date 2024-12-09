@@ -75,14 +75,10 @@ def curve(circle_poses):
 def go(end_pose):
     current_pose = np.eye(4)
     current_pose = robot.forward_kinematics_v2(dh_parameters, fa.get_joints())
-    cartesian_trajectory = TG.generate_straight_line(current_pose,end_pose)
+    cartesian_trajectory = TG.generate_straight_line(current_pose, end_pose)
     unconverged = True
     seed = fa.get_joints()
     attempts = 0
-    # joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, False, seed, dh_parameters)
-    # joint_trajectory = np.array(joint_trajectory)
-    # interp_trajectory = TG.interpolate_joint_trajectory(joint_trajectory)
-    # TF.follow_joint_trajectory(interp_trajectory)
     while(unconverged and attempts < 5):
         try:
             joint_trajectory = TG.convert_cartesian_to_joint(cartesian_trajectory, False, seed, dh_parameters)
